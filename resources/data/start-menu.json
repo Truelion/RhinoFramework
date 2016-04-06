@@ -1,0 +1,54 @@
+{
+    "result":[
+        {
+            "appref":"apps/EasyDoc",
+            "font_icon":"fa-legal",
+            "label":"EasyDoc"
+        },
+        {
+            "appref":"apps/Terms",
+            "font_icon":"fa-legal",
+            "label":"Terms"
+        },
+        {
+            "appref":"apps/SiteMap",
+            "font_icon":"fa-sitemap",
+            "label":"Site Map"
+        },
+        {
+            "appref":"apps/Privacy",
+            "font_icon":"fa-key",
+            "label":"Privacy Policy"
+        },
+        {
+            "appref":"apps/Password",
+            "font_icon":"fa-lock",
+            "label":"Password"
+        },
+        {
+            "appref":"apps/Helpdesk",
+            "font_icon":"fa-phone",
+            "label":"Helpdesk"
+        },
+        {
+            "appref":"apps/Connections",
+            "font_icon":"fa-star",
+            "label":"Connections"
+        },
+        {
+            "appref":"apps/ReportingSettings",
+            "font_icon":"fa-pie-chart",
+            "label":"Reporting To"
+        },
+        {
+            "appref":"apps/About",
+            "font_icon":"fa-info-circle",
+            "label":"About"
+        },
+        {
+            "href":"$.DATA.LOGOUT",
+            "font_icon":"fa-power-off",
+            "label":"Logout"
+        }
+    ]
+}

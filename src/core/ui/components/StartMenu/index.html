@@ -1,0 +1,27 @@
+<div class="canvas">
+	<div id="start-menu-logo" class="unselectable">
+		<img data-src="./resources/images/youtubeBlue.png" src="./resources/images/youtubeBlue.png" class="unselectable" />
+	</div>
+	<div id="start-menu-panel" class="unselectable">
+		<div style="position: absolute; top: 0px; bottom: 0px; z-index: 20; right: 0px; width: 44%;"></div>
+		<ul id="start-menu-container">
+			<script id="start-menu-template" type="text/x-kruntch-template">
+				<for each="result">
+					<if condition="'appref' in this">
+						<li data-app-ref="[appref]" title="[label]">
+							<span class="fa fa-fw icon [font_icon]"></span>[label]
+						</li>
+					<else>
+						<li href="[href]" title="[label]">
+							<span class="fa fa-fw icon [font_icon]"></span>[label]
+						</li>
+					</else>
+					</if>
+				</for>
+			</script>
+		</ul>
+		<span class="copy-right-statement">
+			&copy; 2016, Youtube BLUE. All Rights Reserved. YouTube is a registered trademark of Google. This is only for demo purposes.
+		</span>
+	</div>
+</div>

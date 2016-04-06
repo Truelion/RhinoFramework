@@ -1,0 +1,55 @@
+
+    <ul id="menu" class="canvas">
+        <li class="options selected">
+            <span class="fa fa-ellipsis-v"></span>
+            <span class="label">OPTIONS</span>
+        </li>
+        <!--li class="fullscreen">
+            <span class="fa fa-desktop"></span>
+            <span class="label">FULLSCREEN</span>
+        </li-->
+        <!--li class="fullscreen">
+            <span class="fa fa-globe"></span>
+            <span class="label">DESTINATIONS</span>
+        </li>
+        <li class="location" namespace="core.ui.LocationSelectBox" data-uri="$.DATA.LOCATIONS">
+            <span class="fa fa-book"></span>
+            <span class="label">TRAVEL GUIDES</span>
+            <ul id="locations-menu-container">
+                <script id="locations-menu-template" type="text/x-kruntch-template">
+                    <if condition="this.result.length > 0">
+                        <li style="pointer-events: none;font-weight:bold;">LOCATIONS</li>
+                        <for each="result">
+                            <li data-app-ref="[appref]" class="location item" data-location-id="[id]">
+                                <div class="select-label">[name]</div>
+                                <div class="menu-item-info">[time]</div>
+                            </li>
+                        </for>
+                    </if>
+                </script>
+            </ul>
+        </li-->
+        <li class="recent-apps" readonly="true" data-refresh="false" data-refresh-interval="31000" namespace="core.ui.RecentAppsSelectBox" data-uri="$.DATA.RECENTAPPS">
+            <span class="fa fa-reply"></span>
+            <span class="label">ACTIVITY</span>
+            <ul id="recent-apps-container">
+                <script id="recent-apps-template" type="text/x-kruntch-template">
+                    <if condition="this.result.currently_running.length > 0">
+                        <li style="pointer-events: none;font-weight:bold;margin-top:7px;">Recent Activity</li>
+                        <for each="result.currently_running">
+                            <li data-app-ref="[appref]" class="item">
+                                <div class="select-label">[name]</div>
+                                <div class="menu-item-info">[time]</div>
+                                <div class="close-app-button"><span class="fa fa-close"></span></div>
+                            </li>
+                        </for>
+                    </if>
+                </script>
+            </ul>
+        </li>
+        <li id="support" namespace="core.ui.Button" data-app-ref="apps/SearchResult">
+            <span class="fa fa-phone"></span>
+            <span class="label">SUPPORT</span>
+        </li>
+    </ul>
+
