@@ -65,7 +65,6 @@ namespace("framework.Application",
         var self = this;
         this.parent(model, element);
  
- 
         
         document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);
 

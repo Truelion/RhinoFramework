@@ -38,16 +38,28 @@ StorageManager = {
   persist : function(){
     localStorage.setItem(this.key, JSON.stringify(this.data))
   },
+
+  set : function(ns, obj, persist){
+    persist = typeof persist=="boolean"?persist:false;
+    this.data[ns] = obj;
+    if(persist){
+        StorageManager.persist();
+    }
+  },
+
+  get : function(ns){
+    return this.data[ns];
+  },
   
   store : function(ns, obj, persist){
     persist = typeof persist=="boolean"?persist:false;
-    if(!obj||!ns){return}
-    if(!obj.oid){
+    if(!ns){return}
+    if(typeof obj != "undefined" && obj != null && !obj.oid){
         obj.oid = Math.uuid(8);
     }
     //var objkey = this.key+"."+ns;
     //console.log("objkey:",objkey)
-    var arr = this.data[ns]//localStorage.getItem(objkey);
+    var arr = this.data[ns];//localStorage.getItem(objkey);
     //console.log("ref:",ref)
     var item_exists=false;
     //var arr;
