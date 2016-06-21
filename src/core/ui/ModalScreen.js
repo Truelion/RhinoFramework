@@ -12,10 +12,13 @@ namespace("core.ui.ModalScreen",
 
 
     addEventListeners : function(){
-        this.cancelButton = this.querySelector(".button-bar .cancel.button");
-        this.okButton = this.querySelector(".button-bar .ok.button");
-        this.cancelButton.addEventListener("click", this.onModalWantsToExit.bind(this), false);
-        this.okButton.addEventListener("click", this.onModalWantsToConfirm.bind(this), false);
+        var self=this;
+        setTimeout(function(){
+            self.cancelButton = self.querySelector(".button-bar .cancel.button");
+            self.okButton = self.querySelector(".button-bar .ok.button");
+            self.cancelButton.addEventListener("click", self.onModalWantsToExit.bind(self), false);
+            self.okButton.addEventListener("click", self.onModalWantsToConfirm.bind(self), false);
+        }, 500);
     },
 
     onModalWantsToExit : function(e){
@@ -36,7 +39,7 @@ namespace("core.ui.ModalScreen",
     onConfirmModal : function(e){
         e.preventDefault();
         e.stopPropagation();
-        this.dispatchEvent("confirmmodal", true, true, e.data);
+        this.dispatchEvent("confirmmodal", true, true, this.componentOwner.getModalValue());
         this.close();
     },
     

@@ -4,12 +4,12 @@ namespace("core.http.WebAction", {
     '@inherits': core.http.XMLHttpRequest,
     
     
-    initialize : function(uri, params, config){
+    initialize : function(uri, params, config, async){
         this.parent(uri, params);
         this.uri = uri;
         this.params = params;
         this.config=config||{};
-        this.async=true;
+        this.async=((typeof async == "boolean")?async:true);;
         return this;
     },
     
@@ -33,7 +33,7 @@ namespace("core.http.WebAction", {
 
     buildPath : function(path){
         path = core.http.UrlRouter.resolve(path||this.uri);
-        if(/\{([a-zA-Z0-9]+)\}/g.test(path)){
+        if(/\{([a-zA-Z0-9\.]+)\}/g.test(path)){
             path = this.createRESTfulUrl(path)
         }
         else{
@@ -44,9 +44,9 @@ namespace("core.http.WebAction", {
 
     createRESTfulUrl : function(path){
         var self=this;
-        path = path.replace(/\{([a-zA-Z0-9]+)\}/g, function(){
+        path = path.replace(/\{([a-zA-Z0-9\.]+)\}/g, function(){
           var propName = arguments[1];
-          return (self.params[propName]||"")
+          return (self.params[propName]||eval(propName)||"")
         });
 
         return path;

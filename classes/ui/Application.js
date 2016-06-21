@@ -14,7 +14,7 @@ namespace("ui.Application",
         this.head           = document.getElementsByTagName("head")[0];
         this.configscript   = document.querySelector("script[id='config']")||
                               document.querySelector("script");
-        StorageManager.initialize(appconfig.namespace+"_"+ (appconfig.appid||Math.uuid2()) );
+        StorageManager.initialize((appconfig.storagekey||appconfig.namespace)+"_"+ (appconfig.appid||Math.uuid2()) );
         
         if(window.addEventListener){
             window.addEventListener ("load", this.onLoad.bind(this), true);

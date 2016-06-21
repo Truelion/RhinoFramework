@@ -6,7 +6,10 @@
 namespace("w3c.HtmlComponent", {
     '@inherits':    w3c.Node,
     '@cascade' :    false,
-	'@traits'  :    [w3c.CSSStyleUtilities],
+	'@traits'  :    [
+		core.traits.ResourcePathTransformer, 
+		w3c.CSSStyleUtilities
+	],
 	'@model'   :    ui.models.ComponentModel,
 	'@stylesheets': [],
 	'@htmlparser' : SimpleTemplateEngine,
@@ -26,13 +29,10 @@ namespace("w3c.HtmlComponent", {
             this.rerouteEvents();
             this.setStyleDocuments();
             this.renderDOMTree();
-            
-            // this.initializeChildComponents();
-            // this.initialize(this.model, this.element);
         } 
         catch(e){
             var msg = this.namespace + ".prototype.preInitialize() - " + e.message;
-            try{console.error(msg, this)} catch(e){};
+            console.error(msg, this);
         }
         return this;
     },
@@ -71,6 +71,11 @@ namespace("w3c.HtmlComponent", {
     
     getComponentByQuery : function(cssSelector){
     	var el = this.querySelector(cssSelector);
+    	return (el)? el.prototype:el;
+    },
+
+    getComponentByNamespace : function(namespace){
+    	var el = this.querySelector("*[namespace='" + namespace + "']");
     	return (el)? el.prototype:el;
     },
     
@@ -358,25 +363,6 @@ namespace("w3c.HtmlComponent", {
 	
 	set : function(accessor){},
 	
-	get : function(keypath, accessor, e){},
-	
-	relativeToAbsoluteFilePath : function(path){
-        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
-        
-        if(path.indexOf("~/") >= 0){
-            path = path.replace("~/", apppath);
-        } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(".","/","g") + "/");
-        } 
-        else if(path.indexOf("http") == 0){
-            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
-        }
-        else{
-            if(path.indexOf(appconfig.apppath)<0){
-                path = apppath + path
-            }
-        }
-        path = /http:/.test(path)? path : path.replace("//","/");
-        return path;
-    }
+	get : function(keypath, accessor, e){}
+
 });

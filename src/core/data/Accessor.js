@@ -44,21 +44,23 @@ namespace("core.data.Accessor", {
     },
 
     get : function(path) {
-        var list = this.constructor.prototype.list;
-        if (!list[path]) {
+        //var list = this.constructor.prototype.list;
+        //if (!list[path]) {
             var exp = new Function("$", "return $." + path);
             var r = exp(this.data);
             var a = new core.data.Accessor(r);
-            list[path] = a;
+            //list[path] = a;
             var prefix = (this.getPath().length > 0) ? this.getPath() + "." : "";
             a.setPath(prefix + path);
-            list[prefix + path] = a;
+            //list[prefix + path] = a;
 
             a.parent = this;
             return a;
-        } else {
-            return list[path];
-        }
+
+            
+        // } else {
+        //     return list[path];
+        // }
     },
 
     set : function(path, val, _owner) {

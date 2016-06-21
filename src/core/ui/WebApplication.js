@@ -23,25 +23,37 @@ namespace("core.ui.WebApplication",
             }
         }
     },
+
+    allowRefreshCycle : function(){
+        return true;
+    },
     
     onScreenResized : function(){
         console.info("Screen Resized detected by current application: ", this)    
+    },
+
+    onRefresh : function(){
+        console.info(this.namespace + " onRefresh() handler triggered (app heartbeat).");    
+    },
+
+    onResume : function(e){
+        console.info(this.namespace + " onResume() handler triggered.");    
     },
     
     onFocus : function(e){
         this.setActivityState(true);
         application.requestRefreshCycle(this);
-        console.info(this.namespace + " is focused");    
+        console.info(this.namespace + " onFocus() handler triggered");    
     },
     
     
     onBlur : function(e){
         this.setActivityState(false);
-        console.info(this.namespace + " is blurred and not running");    
+        console.info(this.namespace + " onBlur() handler triggered. Inactive.");    
     },
     
     onActivated : function(e){
-        console.info(this.namespace + " is activated from disk");    
+        console.info(this.namespace + " onActivated() handler triggered. Loaded from disk.");    
     },
     
     run : function() {
@@ -56,9 +68,6 @@ namespace("core.ui.WebApplication",
         return this._is_active_and_focused == true;
     },
     
-    refresh : function(e){
-        console.info(this.namespace + " refreshed");
-    },
     
     modalize : function(component){
         //e.preventDefault();

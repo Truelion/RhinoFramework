@@ -1,6 +1,7 @@
 namespace("core.ui.Panel", {
     '@inherits' : core.ui.WebComponent,
     "@cascade"  : true,
+    '@stylesheets' :["~/resources/[$theme]/Panel.css"],
     
     initialize : function(){
         this.title          = this.querySelector(".title");

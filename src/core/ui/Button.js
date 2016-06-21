@@ -1,7 +1,10 @@
 namespace("core.ui.Button", {
     '@inherits' : core.ui.WebComponent,
     "@cascade"  : true,
-    
+    '@stylesheets' : [
+        "resources/[$theme]/Button.css"
+    ],
+
     initialize : function(){
         this.parent();
         this.iconEl = this.querySelector(".icon");

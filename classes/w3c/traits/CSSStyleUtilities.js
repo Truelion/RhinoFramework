@@ -1,3 +1,5 @@
+// require w3c.traits.ResourcePathTransformer
+
 namespace("w3c.CSSStyleUtilities");
 
 w3c.CSSStyleUtilities = {
@@ -56,6 +58,8 @@ w3c.CSSStyleUtilities = {
 			}
 			else if(typeof styles === "string" && styles.indexOf("http://") != 0) {
 				var path = this.resourcepath(styles);
+				if(stylesheets[path]){return}
+					
 				var stylenode= document.createElement('style');
 				    stylenode.setAttribute("type", 'text/css');
 					stylenode.setAttribute("rel", 'stylesheet');
@@ -64,7 +68,7 @@ w3c.CSSStyleUtilities = {
 					stylenode.setAttribute("component", this.namespace||"");
 					//head.appendChild(stylenode);
 					this.appendStyleSheet(stylenode);
-					stylesheets[styles] = stylenode;
+					stylesheets[path] = stylenode;
 					var oXMLHttpRequest;
     					try{
                             oXMLHttpRequest = new core.http.XMLHttpRequest;
@@ -127,32 +131,6 @@ w3c.CSSStyleUtilities = {
         }
 	},
     
-    resourcepath : function resourcepath(filepath){
-        //var nspath = this.namespace.replace(/\./g,"/");
-        var apppath = appconfig.apppath||"";
-        var path = apppath + filepath.replace("[$theme]", ("themes/"+appconfig.theme));
-        return this.relativeToAbsoluteFilePath(path);
-    },
-    
-    relativeToAbsoluteFilePath : function(path){
-        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
-        
-        if(path.indexOf("~/") >= 0){
-            path = path.replace("~/", apppath);
-        } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(".","/","g") + "/");
-        } 
-        else if(path.indexOf("http") == 0){
-            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
-        }
-        else{
-            if(path.indexOf(appconfig.apppath)<0){
-                path = apppath + path
-            }
-        }
-        path = /http:/.test(path)? path : path.replace("//","/");
-        return path;
-    },
     
 	getStyle : function (styleProp, element) {
 	    element = element||this.element;

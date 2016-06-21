@@ -120,7 +120,10 @@ if (!Object.prototype.extend) {
         writable : true,
         value : function(source) {
             for (var property in source) {
-                this[property] = source[property];}
+                if(source.hasOwnProperty(property)){
+                    this[property] = source[property];
+                }
+            }
             return this;
         }
     });
@@ -148,7 +151,40 @@ if (!Object.prototype.watch) {
             }
         }
     });
-}
+};
+
+
+if (!Object.prototype.addChangeListener) {
+    Object.defineProperty(Object.prototype, "addChangeListener", {
+        enumerable : false,
+        configurable : true,
+        writable : true,
+        value : function(prop, handler) {
+            var oldval = this[prop], 
+                newval = oldval, 
+                getter = function() {
+                    return newval;
+                }, 
+                setter = function(val) {
+                    oldval = newval;
+                    var self=this;
+                    setTimeout(function(){
+                        handler.call(self, prop, oldval, val);
+                    },100);
+                    return newval = val;//handler.call(this, prop, oldval, val);
+                };
+            if (delete this[prop]) {// can't watch constants
+                Object.defineProperty(this, prop, {
+                    get : getter,
+                    set : setter,
+                    enumerable : true,
+                    configurable : true
+                });
+            }
+        }
+    });
+};
+
 
 // object.unwatch
 if (!Object.prototype.unwatch) {
@@ -689,7 +725,7 @@ prefix = (function () {
         if(path.indexOf("~/") >= 0){
             path = path.replace("~/", apppath);
         } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(".","/","g") + "/");
+            path = path.replace("./", apppath + this.namespace.replace(/\./gim,"/") + "/");
         } 
         else if(path.indexOf("http") == 0){
             return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
@@ -903,6 +939,40 @@ browser.DeviceInfo.initialize();
 // require Kruntch
 
 
+namespace("core.traits.ResourcePathTransformer");
+
+core.traits.ResourcePathTransformer = {
+    resourcepath : function resourcepath(filepath){
+        var apppath = appconfig.apppath||"";
+        filepath = filepath.replace("[$theme]", ("themes/"+appconfig.theme));
+        filepath = filepath.replace("[$icon]",  ("themes/"+appconfig.theme) + "/images/icons/");
+
+        var path = apppath + filepath;
+        return this.relativeToAbsoluteFilePath(path);
+    },
+    
+    relativeToAbsoluteFilePath : function(path){
+        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
+        
+        if(path.indexOf("~/") >= 0){
+            path = path.replace("~/", apppath);
+        } else if(path.indexOf("./") >= 0){
+            path = path.replace("./", apppath + this.namespace.replace(/\./gim,"/") + "/");
+        } 
+        else if(path.indexOf("http") == 0){
+            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
+        }
+        else{
+            if(path.indexOf(appconfig.apppath)<0){
+                path = apppath + path
+            }
+        }
+        path = /http:/.test(path)? path : path.replace("//","/");
+        return path;
+    }
+};
+
+
 var Observer = function() {
     this.observations = [];
     this.subscribers  = {};
@@ -1017,6 +1087,8 @@ SimpleTemplateEngine = {
 };
 
 
+// require w3c.traits.ResourcePathTransformer
+
 namespace("w3c.CSSStyleUtilities");
 
 w3c.CSSStyleUtilities = {
@@ -1075,6 +1147,8 @@ w3c.CSSStyleUtilities = {
 			}
 			else if(typeof styles === "string" && styles.indexOf("http://") != 0) {
 				var path = this.resourcepath(styles);
+				if(stylesheets[path]){return}
+					
 				var stylenode= document.createElement('style');
 				    stylenode.setAttribute("type", 'text/css');
 					stylenode.setAttribute("rel", 'stylesheet');
@@ -1083,7 +1157,7 @@ w3c.CSSStyleUtilities = {
 					stylenode.setAttribute("component", this.namespace||"");
 					//head.appendChild(stylenode);
 					this.appendStyleSheet(stylenode);
-					stylesheets[styles] = stylenode;
+					stylesheets[path] = stylenode;
 					var oXMLHttpRequest;
     					try{
                             oXMLHttpRequest = new core.http.XMLHttpRequest;
@@ -1146,32 +1220,6 @@ w3c.CSSStyleUtilities = {
         }
 	},
     
-    resourcepath : function resourcepath(filepath){
-        //var nspath = this.namespace.replace(/\./g,"/");
-        var apppath = appconfig.apppath||"";
-        var path = apppath + filepath.replace("[$theme]", ("themes/"+appconfig.theme));
-        return this.relativeToAbsoluteFilePath(path);
-    },
-    
-    relativeToAbsoluteFilePath : function(path){
-        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
-        
-        if(path.indexOf("~/") >= 0){
-            path = path.replace("~/", apppath);
-        } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(".","/","g") + "/");
-        } 
-        else if(path.indexOf("http") == 0){
-            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
-        }
-        else{
-            if(path.indexOf(appconfig.apppath)<0){
-                path = apppath + path
-            }
-        }
-        path = /http:/.test(path)? path : path.replace("//","/");
-        return path;
-    },
     
 	getStyle : function (styleProp, element) {
 	    element = element||this.element;
@@ -1571,7 +1619,10 @@ namespace("w3c.Node", {
 namespace("w3c.HtmlComponent", {
     '@inherits':    w3c.Node,
     '@cascade' :    false,
-	'@traits'  :    [w3c.CSSStyleUtilities],
+	'@traits'  :    [
+		core.traits.ResourcePathTransformer, 
+		w3c.CSSStyleUtilities
+	],
 	'@model'   :    ui.models.ComponentModel,
 	'@stylesheets': [],
 	'@htmlparser' : SimpleTemplateEngine,
@@ -1591,13 +1642,10 @@ namespace("w3c.HtmlComponent", {
             this.rerouteEvents();
             this.setStyleDocuments();
             this.renderDOMTree();
-            
-            // this.initializeChildComponents();
-            // this.initialize(this.model, this.element);
         } 
         catch(e){
             var msg = this.namespace + ".prototype.preInitialize() - " + e.message;
-            try{console.error(msg, this)} catch(e){};
+            console.error(msg, this);
         }
         return this;
     },
@@ -1636,6 +1684,11 @@ namespace("w3c.HtmlComponent", {
     
     getComponentByQuery : function(cssSelector){
     	var el = this.querySelector(cssSelector);
+    	return (el)? el.prototype:el;
+    },
+
+    getComponentByNamespace : function(namespace){
+    	var el = this.querySelector("*[namespace='" + namespace + "']");
     	return (el)? el.prototype:el;
     },
     
@@ -1923,27 +1976,8 @@ namespace("w3c.HtmlComponent", {
 	
 	set : function(accessor){},
 	
-	get : function(keypath, accessor, e){},
-	
-	relativeToAbsoluteFilePath : function(path){
-        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
-        
-        if(path.indexOf("~/") >= 0){
-            path = path.replace("~/", apppath);
-        } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(".","/","g") + "/");
-        } 
-        else if(path.indexOf("http") == 0){
-            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
-        }
-        else{
-            if(path.indexOf(appconfig.apppath)<0){
-                path = apppath + path
-            }
-        }
-        path = /http:/.test(path)? path : path.replace("//","/");
-        return path;
-    }
+	get : function(keypath, accessor, e){}
+
 });
 
 
@@ -1962,7 +1996,7 @@ namespace("ui.Application",
         this.head           = document.getElementsByTagName("head")[0];
         this.configscript   = document.querySelector("script[id='config']")||
                               document.querySelector("script");
-        StorageManager.initialize(appconfig.namespace+"_"+ (appconfig.appid||Math.uuid2()) );
+        StorageManager.initialize((appconfig.storagekey||appconfig.namespace)+"_"+ (appconfig.appid||Math.uuid2()) );
         
         if(window.addEventListener){
             window.addEventListener ("load", this.onLoad.bind(this), true);
@@ -2774,21 +2808,23 @@ namespace("core.data.Accessor", {
     },
 
     get : function(path) {
-        var list = this.constructor.prototype.list;
-        if (!list[path]) {
+        //var list = this.constructor.prototype.list;
+        //if (!list[path]) {
             var exp = new Function("$", "return $." + path);
             var r = exp(this.data);
             var a = new core.data.Accessor(r);
-            list[path] = a;
+            //list[path] = a;
             var prefix = (this.getPath().length > 0) ? this.getPath() + "." : "";
             a.setPath(prefix + path);
-            list[prefix + path] = a;
+            //list[prefix + path] = a;
 
             a.parent = this;
             return a;
-        } else {
-            return list[path];
-        }
+
+            
+        // } else {
+        //     return list[path];
+        // }
     },
 
     set : function(path, val, _owner) {
@@ -5284,6 +5320,7 @@ core.http.UrlRouter.add("apps/Desktop/main.js", function(e, matches){
     return "apps/Desktop/main.js"
 });*/
 
+
 /*********************************************************************
  ::USAGE::
     Abstract class -- not to be used by developers directly. Instead, subclasses
@@ -5305,14 +5342,6 @@ namespace("core.http.ResourceLoader", {
     },
     
     getDefaultMethod : function(meth){
-        /*var method = "GET";
-        if(appconfig.environment == "dev"){
-            method = "GET"
-        }
-        else {
-            method = meth||"POST"
-        }
-        return method;*/
         meth = meth||"GET";
         return meth;
     },
@@ -5323,6 +5352,7 @@ namespace("core.http.ResourceLoader", {
     }
 });
 
+
 /*********************************************************************
  ::USAGE::
     Abstract class -- not to be used by developers directly. Instead, subclasses
@@ -5344,14 +5374,6 @@ namespace("core.http.ResourceLoader", {
     },
     
     getDefaultMethod : function(meth){
-        /*var method = "GET";
-        if(appconfig.environment == "dev"){
-            method = "GET"
-        }
-        else {
-            method = meth||"POST"
-        }
-        return method;*/
         meth = meth||"GET";
         return meth;
     },
@@ -5445,6 +5467,7 @@ namespace("core.http.XMLHttpRequest", {
     
     
     initialize : function(){
+        this.async = true;
         this.oXMLHttpRequest = new XMLHttpRequest;
         this.oXMLHttpRequest.onreadystatechange  = this.onstatechange.bind(this);
         return this;
@@ -5455,7 +5478,7 @@ namespace("core.http.XMLHttpRequest", {
         this.oXMLHttpRequest.addEventListener(type, handler, capture);
     },
     
-    open : function(method, path , async){
+    /*open : function(method, path , async){
         this.method = method||this.getDefaultMethod();
         var url = this.parent(this.method, path , async);
         if(this.method.toLowerCase() == "get"){
@@ -5463,6 +5486,50 @@ namespace("core.http.XMLHttpRequest", {
         }
 
         this.oXMLHttpRequest.open(this.method, url, ((typeof async == "boolean")?async:true));
+    },*/
+
+    open : function(method, path , async, params){
+        async   = ((typeof async == "boolean")?async:this.async);
+        method  = method||this.getDefaultMethod();
+        
+        //path    = core.http.UrlRouter.resolve(path||this.uri);
+        //path    = path + this.createQueryString(method,path,this.params);
+        this.async  = async;
+        this.method = method;
+        this.params = params||{};
+        path = this.buildPath(path);
+
+        this.oXMLHttpRequest.open(method, path, async);
+        return this;
+    },
+
+    buildPath : function(path){
+        path = core.http.UrlRouter.resolve(path||this.uri);
+        if(/\{([a-zA-Z0-9\.]+)\}/g.test(path)){
+            path = this.createRESTfulUrl(path)
+        }
+        else{
+            path  = path + this.createQueryString(this.method,path,this.params);
+        }
+        return path;
+    },
+
+    createRESTfulUrl : function(path){
+        var self=this;
+        path = path.replace(/\{([a-zA-Z0-9\.]+)\}/g, function(){
+          var propName = arguments[1];
+          return (self.params[propName]||eval(propName)||"")
+        });
+
+        return path;
+    },
+
+    createQueryString : function(method, url, params){
+        if(appconfig.environment == "dev" && method == "GET"){
+            return this.getParameterSeperator(url) + (params?toQueryString(params):"");
+        } else {
+            return "";
+        }
     },
     
     setRequestHeader : function(prop, value){
@@ -5514,6 +5581,7 @@ namespace("core.http.XMLHttpRequest", {
     
     
     initialize : function(){
+        this.async = true;
         this.oXMLHttpRequest = new XMLHttpRequest;
         this.oXMLHttpRequest.onreadystatechange  = this.onstatechange.bind(this);
         return this;
@@ -5524,7 +5592,7 @@ namespace("core.http.XMLHttpRequest", {
         this.oXMLHttpRequest.addEventListener(type, handler, capture);
     },
     
-    open : function(method, path , async){
+    /*open : function(method, path , async){
         this.method = method||this.getDefaultMethod();
         var url = this.parent(this.method, path , async);
         if(this.method.toLowerCase() == "get"){
@@ -5532,6 +5600,50 @@ namespace("core.http.XMLHttpRequest", {
         }
 
         this.oXMLHttpRequest.open(this.method, url, ((typeof async == "boolean")?async:true));
+    },*/
+
+    open : function(method, path , async, params){
+        async   = ((typeof async == "boolean")?async:this.async);
+        method  = method||this.getDefaultMethod();
+        
+        //path    = core.http.UrlRouter.resolve(path||this.uri);
+        //path    = path + this.createQueryString(method,path,this.params);
+        this.async  = async;
+        this.method = method;
+        this.params = params||{};
+        path = this.buildPath(path);
+
+        this.oXMLHttpRequest.open(method, path, async);
+        return this;
+    },
+
+    buildPath : function(path){
+        path = core.http.UrlRouter.resolve(path||this.uri);
+        if(/\{([a-zA-Z0-9\.]+)\}/g.test(path)){
+            path = this.createRESTfulUrl(path)
+        }
+        else{
+            path  = path + this.createQueryString(this.method,path,this.params);
+        }
+        return path;
+    },
+
+    createRESTfulUrl : function(path){
+        var self=this;
+        path = path.replace(/\{([a-zA-Z0-9\.]+)\}/g, function(){
+          var propName = arguments[1];
+          return (self.params[propName]||eval(propName)||"")
+        });
+
+        return path;
+    },
+
+    createQueryString : function(method, url, params){
+        if(appconfig.environment == "dev" && method == "GET"){
+            return this.getParameterSeperator(url) + (params?toQueryString(params):"");
+        } else {
+            return "";
+        }
     },
     
     setRequestHeader : function(prop, value){
@@ -5581,12 +5693,12 @@ namespace("core.http.WebAction", {
     '@inherits': core.http.XMLHttpRequest,
     
     
-    initialize : function(uri, params, config){
+    initialize : function(uri, params, config, async){
         this.parent(uri, params);
         this.uri = uri;
         this.params = params;
         this.config=config||{};
-        this.async=true;
+        this.async=((typeof async == "boolean")?async:true);;
         return this;
     },
     
@@ -5610,7 +5722,7 @@ namespace("core.http.WebAction", {
 
     buildPath : function(path){
         path = core.http.UrlRouter.resolve(path||this.uri);
-        if(/\{([a-zA-Z0-9]+)\}/g.test(path)){
+        if(/\{([a-zA-Z0-9\.]+)\}/g.test(path)){
             path = this.createRESTfulUrl(path)
         }
         else{
@@ -5621,9 +5733,9 @@ namespace("core.http.WebAction", {
 
     createRESTfulUrl : function(path){
         var self=this;
-        path = path.replace(/\{([a-zA-Z0-9]+)\}/g, function(){
+        path = path.replace(/\{([a-zA-Z0-9\.]+)\}/g, function(){
           var propName = arguments[1];
-          return (self.params[propName]||"")
+          return (self.params[propName]||eval(propName)||"")
         });
 
         return path;
@@ -5995,6 +6107,16 @@ namespace("core.ui.WebComponent",
     '@stylesheets' : [],
     "@cascade"  : true,
     
+    onRenderData : function(data, initChildComponents){
+        if(!this.templates){
+            this.templates = {};
+            this.templates[data.table] = {
+                template : this.querySelector("#" + data.table + "-template"),
+                div : "#" + data.table + "-container"
+            };
+        };
+        this.renderTemplate(data, data.table, initChildComponents);
+    },
     
     renderTemplate : function(data, templateName, initChildComponents, autoInsert){
         initChildComponents = typeof initChildComponents=="boolean"?initChildComponents:false;
@@ -6005,6 +6127,14 @@ namespace("core.ui.WebComponent",
             alert("error, no '" +templateName+ "' template found to render data");
             return;
         } 
+        
+        if(!templateDefinition.template){
+            throw new Error("No matching template found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace, this);
+        }
+        if(!templateDefinition.div){
+            throw new Error("No matching template container found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace + "\nExpectting a <div> container to wrap a template", this);
+        }
+
         if(templateDefinition.template.parentNode){
             templateDefinition.template.parentNode.removeChild(templateDefinition.template);
         }
@@ -6013,11 +6143,18 @@ namespace("core.ui.WebComponent",
         d.innerHTML = text;
         
         var container = d;
+        if(!container){
+            throw new Error("No matching template container found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace + "\nExpectting a <div> container to wrap a template", this);
+        }
+
         if(autoInsert){
             if(typeof templateDefinition.div == "string"){
                 container = this.querySelector(templateDefinition.div);
             } else{
                 container = templateDefinition.div;
+            }
+            if(!container){
+                throw new Error("No matching template container found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace, this);
             }
             if(templateDefinition.parentTagName){
                 container.innerHTML="";
@@ -6053,6 +6190,8 @@ namespace("core.ui.WebComponent",
                     oXMLHttpRequest.onreadystatechange  = function() {
                         if (this.readyState == XMLHttpRequest.DONE) {
                             var htmltext = this.responseText;
+                                htmltext = htmltext.replace("[$theme]",self.resourcepath("[$theme]"),"igm");
+                                htmltext = htmltext.replace("[$icon]",self.resourcepath("[$icon]"),"igm")
                             self.constructor.prototype.innerHTML = htmltext;
                             self.constructor.prototype["@href"]=null;
                             var view = self.parseElement();
@@ -6109,6 +6248,10 @@ namespace("core.ui.WebComponent",
     
     onFocus : function(){},
     
+    getModalValue : function() {
+        console.info("Implement getModalValue() in " + this.namespace + " to return a value when the modal is confirmed as OK/Save.")
+        return null;
+    },
     
     parseElement : function (template, json){
         var templateString = (typeof this.innerHTML === "function") ?
@@ -6207,7 +6350,10 @@ namespace("core.ui.ApplicationBar", {
 namespace("core.ui.Button", {
     '@inherits' : core.ui.WebComponent,
     "@cascade"  : true,
-    
+    '@stylesheets' : [
+        "resources/[$theme]/Button.css"
+    ],
+
     initialize : function(){
         this.parent();
         this.iconEl = this.querySelector(".icon");
@@ -6269,25 +6415,37 @@ namespace("core.ui.WebApplication",
             }
         }
     },
+
+    allowRefreshCycle : function(){
+        return true;
+    },
     
     onScreenResized : function(){
         console.info("Screen Resized detected by current application: ", this)    
+    },
+
+    onRefresh : function(){
+        console.info(this.namespace + " onRefresh() handler triggered (app heartbeat).");    
+    },
+
+    onResume : function(e){
+        console.info(this.namespace + " onResume() handler triggered.");    
     },
     
     onFocus : function(e){
         this.setActivityState(true);
         application.requestRefreshCycle(this);
-        console.info(this.namespace + " is focused");    
+        console.info(this.namespace + " onFocus() handler triggered");    
     },
     
     
     onBlur : function(e){
         this.setActivityState(false);
-        console.info(this.namespace + " is blurred and not running");    
+        console.info(this.namespace + " onBlur() handler triggered. Inactive.");    
     },
     
     onActivated : function(e){
-        console.info(this.namespace + " is activated from disk");    
+        console.info(this.namespace + " onActivated() handler triggered. Loaded from disk.");    
     },
     
     run : function() {
@@ -6302,9 +6460,6 @@ namespace("core.ui.WebApplication",
         return this._is_active_and_focused == true;
     },
     
-    refresh : function(e){
-        console.info(this.namespace + " refreshed");
-    },
     
     modalize : function(component){
         //e.preventDefault();
@@ -6323,6 +6478,7 @@ namespace("core.ui.WebApplication",
 namespace("core.ui.Panel", {
     '@inherits' : core.ui.WebComponent,
     "@cascade"  : true,
+    '@stylesheets' :["~/resources/[$theme]/Panel.css"],
     
     initialize : function(){
         this.title          = this.querySelector(".title");
@@ -6376,6 +6532,7 @@ namespace("core.ui.Panel", {
 namespace("core.ui.Panel", {
     '@inherits' : core.ui.WebComponent,
     "@cascade"  : true,
+    '@stylesheets' :["~/resources/[$theme]/Panel.css"],
     
     initialize : function(){
         this.title          = this.querySelector(".title");
@@ -6531,10 +6688,13 @@ namespace("core.ui.ModalScreen",
 
 
     addEventListeners : function(){
-        this.cancelButton = this.querySelector(".button-bar .cancel.button");
-        this.okButton = this.querySelector(".button-bar .ok.button");
-        this.cancelButton.addEventListener("click", this.onModalWantsToExit.bind(this), false);
-        this.okButton.addEventListener("click", this.onModalWantsToConfirm.bind(this), false);
+        var self=this;
+        setTimeout(function(){
+            self.cancelButton = self.querySelector(".button-bar .cancel.button");
+            self.okButton = self.querySelector(".button-bar .ok.button");
+            self.cancelButton.addEventListener("click", self.onModalWantsToExit.bind(self), false);
+            self.okButton.addEventListener("click", self.onModalWantsToConfirm.bind(self), false);
+        }, 500);
     },
 
     onModalWantsToExit : function(e){
@@ -6555,7 +6715,7 @@ namespace("core.ui.ModalScreen",
     onConfirmModal : function(e){
         e.preventDefault();
         e.stopPropagation();
-        this.dispatchEvent("confirmmodal", true, true, e.data);
+        this.dispatchEvent("confirmmodal", true, true, this.componentOwner.getModalValue());
         this.close();
     },
     
@@ -6860,7 +7020,6 @@ namespace("core.ui.components.HelpWizard", {
  * matching app with params.
  *
  * @example
- * http://localhost:3000/#(appref:apps/SearchResults,keyword:'28.119783899999998, -81.4444443')
  * A url like this, when pasted into the address bar and executed will trigger the UrlHashState
  * trait to spawn up a new instance of the app, apps/SearchResults and pass inthe keyword
  * params into the app.
@@ -6874,12 +7033,12 @@ UrlHashState = {
        this.addEventListener("appopened", this.onApplicationOpened2.bind(this), false);
        this.initializeURLHashing();
        window.onbeforeunload = function () {
-           if(self.isLoggedIn) {
+           /*if(self.isLoggedIn) {
                return "Exit? If you leave now, any unsaved data will be lost."
            }
            else{
                 
-           }
+           }*/
        }
     },
     
@@ -6889,29 +7048,68 @@ UrlHashState = {
     
     initializeURLHashing : function(){
         var self=this;
-        var defaultHashPath = rison.encode({appref:"apps/Desktop"});
-        
+        var defaultHashPath = rison.encode({appref:app.constants.DEFAULT_HOME_APP});
         this.addEventListener("statechanged", function(){
-            var currentHash = window.location.hash;
+            var currentHash = window.location.hash||"";
                 currentHash = currentHash.replace("#","");
-            var appinfo     = rison.decode(decodeURIComponent(currentHash));
+            var appinfo;
 
-            if(!appinfo || !appinfo.appref){
-              window.location.hash=defaultHashPath;
+            if(currentHash.indexOf("?")==0){
+              var json = self.QueryStringToJSON(currentHash.substr(1));
+              var encodedVal = rison.encode(json);
+              currentHash = encodedVal;
             }
-            else if(appinfo && appinfo.appref && appinfo.appref.length>0){
+            
+            try {
+              appinfo = rison.decode(decodeURIComponent(currentHash));
+            } catch(e){
+              if(!appinfo || !appinfo.appref){
+                window.location.hash=defaultHashPath;
+              }
+            }
+
+            if(appinfo && appinfo.appref && appinfo.appref.length>0){
               var ns = appinfo.appref.replace("/",".");
               var app = self.currentRunningApplication;
               if(!app || app.namespace != ns){
                   self.dispatchEvent("openapp",true,true,appinfo)
               }
+              else if(app && app.namespace == ns){
+                    app.onResume({data:appinfo})
+                  //self.dispatchEvent("openapp",true,true,appinfo)
+              }
             }
-        }.debounce(300), false);
+        }, false);
 
         var h = window.location.hash;
         if(!h||(h && h.length <=0)){
             window.location.hash = defaultHashPath;
         }
+    },
+
+
+    QueryStringToJSON : function(qs) {
+      qs = qs || location.search.slice(1);
+
+      var pairs = qs.split('&');
+      var result = {};
+      pairs.forEach(function(pair) {
+          var pair = pair.split('=');
+          var key = pair[0];
+          var value = decodeURIComponent(pair[1] || '');
+
+            if( result[key] ) {
+                if( Object.prototype.toString.call( result[key] ) === '[object Array]' ) {
+                    result[key].push( value );
+                } else {
+                    result[key] = [ result[key], value ];
+                }
+            } else {
+                result[key] = value;
+            }
+        });
+
+        return JSON.parse(JSON.stringify(result));
     },
     
     
@@ -6958,7 +7156,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
 
 
-namespace("framework.Application",
+namespace("core.Application",
 {
     '@inherits' : ui.Application,
     '@cascade'  : false,
@@ -6979,21 +7177,21 @@ namespace("framework.Application",
         console.info("DEVICE RESOLUTION:", window.innerWidth + " x " + window.innerHeight);
         this.setUserAgentClasses();
         this.initializeUrlRoutesTable();
-        this.initializeHeartBeatMonitor();
+        //this.initializeHeartBeatMonitor();
 
         //STATE
-        this.recentAppsSelector         = this.querySelector(".Navigator .RecentAppsSelectBox");
-        this.startMenu                  = this.querySelector(".ApplicationBar .StartMenu");
-        this.searchBox                  = this.querySelector(".SearchBox");
+        //this.recentAppsSelector         = this.querySelector(".Navigator .RecentAppsSelectBox");
+        //this.startMenu                  = this.querySelector(".ApplicationBar .StartMenu");
+        //this.searchBox                  = this.querySelector(".SearchBox");
         this.wallpaper                  = this.querySelector("#wallpaper");
         this.globalApplicationSpinner   = this.querySelector("#global-application-spinner");
         this.appsScreen                 = this.querySelector(".application-container");
         
         //EVENTS
         this.addEventListener("appopened", this.onApplicationOpened.bind(this), false);
-        if(this.searchBox){
-            this.searchBox.addEventListener("focus", this.onSearchBoxFocused.bind(this), false);
-        }
+        // if(this.searchBox){
+        //     this.searchBox.addEventListener("focus", this.onSearchBoxFocused.bind(this), false);
+        // }
 
         this.addEventListener("startmenu", this.onStartMenuActionReceived.bind(this), false);
         this.addEventListener("notification", this.onNotificationReceived.bind(this), false);
@@ -7016,7 +7214,23 @@ namespace("framework.Application",
         this.addEventListener("togglemenu", this.onToggleStartMenu.bind(this), false);
         this.addEventListener("hidemenu", this.onHideStartMenu.bind(this), false);
 
+        this.addEventListener("ready", this.onApplicationReady.bind(this), false);
+
         this.bootup();
+    },
+
+    getLocationHashParams : function(){
+        var hash = location.hash.replace("#","");
+        var appinfo = rison.decode(decodeURIComponent(hash));
+        return appinfo;
+    },
+
+    getApplicationContainer : function(){
+        return this.appsScreen;
+    },
+
+    onApplicationReady : function(){
+        this._isReady = true;
     },
 
     onDeviceReady : function(){
@@ -7062,7 +7276,16 @@ namespace("framework.Application",
         }
     },
     
-    onApplicationOpened : function(e){},
+    onApplicationOpened : function(e){
+        if(e.data && e.data.appref){
+            var appref = this.getWebApplicationInfoByRef(e.data.appref);
+            var ns = appref.namespace;
+            var instance = this.getApplicationInstance(ns);
+            if(instance && instance.onResume) {
+                instance.onResume(e);
+            }
+        }
+    },
     
     
     onApplicationSessionLoaded : function(){
@@ -7186,7 +7409,6 @@ namespace("framework.Application",
     },
     
     onReleaseApp : function(e){
-        //debugger;
         var self=this;
         var ns = e.data.ns;
         this.removeApplicationInstance(ns);
@@ -7199,9 +7421,9 @@ namespace("framework.Application",
         }
     },
     
-    onSearchBoxFocused : function(){
-        this.startMenu.prototype.onHideStartMenuPanel();    
-    },
+    // onSearchBoxFocused : function(){
+    //     this.startMenu.prototype.onHideStartMenuPanel();    
+    // },
     
     setUserAgentClasses : function(){
         if(UserAgent.isMobile() || appconfig.ismobile){
@@ -7237,7 +7459,8 @@ namespace("framework.Application",
             this.element.classList.add("spa");
         }
         setTimeout(function() {
-            self.beginVisitorSession();
+            self.dispatchEvent("sessionloaded", true, true, {});
+            //self.beginVisitorSession();
             self.beginAppRefreshInterval();
         },400);
     },
@@ -7285,9 +7508,7 @@ namespace("framework.Application",
     },
     
     onToggleFullscreen : function(e){
-        //debugger;
         if(!appconfig.fullscreenmode){return}
-        //if(!UserAgent.isMobile()){return}
         var el = this.element;
         var _FullScreenEnabled =    document.fullscreenEnabled||
                                     document.webkitFullscreenEnabled || 
@@ -7357,7 +7578,10 @@ namespace("framework.Application",
         var self=this;
         setInterval(function(){
             if(self.currentRunningApplication && self.currentRunningApplication.isFocused()){
-                self.currentRunningApplication.refresh();    
+                if(self.currentRunningApplication.allowRefreshCycle()){
+                //self.currentRunningApplication.refresh();    
+                    self.currentRunningApplication.onRefresh();  
+                }
             }
         }, this.APP_REFRESH_INTERVAL);
     },
@@ -7366,42 +7590,42 @@ namespace("framework.Application",
         this.currentRunningApplication = app;
     },
     
-    beginVisitorSession : function(id, full){
-        var uri = this.element.getAttribute("data-uri");
-        var action = new core.http.WebAction(uri||ROUTES.DATA.PROFILE, {});
+    // beginVisitorSession : function(id, full){
+    //     var uri = this.element.getAttribute("data-uri");
+    //     var action = new core.http.WebAction(uri||ROUTES.DATA.PROFILE, {});
 
-            action.invoke({
-                onSuccess  : this.onVisitorSessionLoaded.bind(this,full),
-                onFailure  : this.onVisitorSessionFailure.bind(this),
-                onRejected : this.onVisitorSessionFailure.bind(this)
-            });
-    },
+    //         action.invoke({
+    //             onSuccess  : this.onVisitorSessionLoaded.bind(this,full),
+    //             onFailure  : this.onVisitorSessionFailure.bind(this),
+    //             onRejected : this.onVisitorSessionFailure.bind(this)
+    //         });
+    // },
     
-    onVisitorSessionFailure : function(r,text){
-        console.error("failed to load visitor profile: " + text, r);
-    },
+    // onVisitorSessionFailure : function(r,text){
+    //     console.error("failed to load visitor profile: " + text, r);
+    // },
     
-    onVisitorSessionLoaded : function(full,response, responseText){
-        try{
-            var data = JSON.parse(responseText);
-            if(typeof data == "object"){
-                this.storeAccountProfileInSession(data);
-                this.setDesktopTheme(data);
-            }
-        }
-        catch(e){
-            alert("error downloading users profile");
-            console.error(e.message,responseText);
-        }
-    },
+    // onVisitorSessionLoaded : function(full,response, responseText){
+    //     try{
+    //         var data = JSON.parse(responseText);
+    //         if(typeof data == "object"){
+    //             //this.storeAccountProfileInSession(data);
+    //             //this.setDesktopTheme(data);
+    //         }
+    //     }
+    //     catch(e){
+    //         alert("error downloading users profile");
+    //         console.error(e.message,responseText);
+    //     }
+    // },
     
-    storeAccountProfileInSession : function(data){
-        if(Session) {
-            Session.State.AccountProfile = data;
-            Session.State.CurrentProfile = data;
-            this.dispatchEvent("sessionloaded", true, true, {profile:data});
-        }
-    },
+    // storeAccountProfileInSession : function(data){
+    //     if(Session) {
+    //         Session.State.AccountProfile = data;
+    //         Session.State.CurrentProfile = data;
+    //         this.dispatchEvent("sessionloaded", true, true, {profile:data});
+    //     }
+    // },
 
     
     onModalize : function(){},
@@ -7424,7 +7648,7 @@ namespace("framework.Application",
     },
     
     
-    initializeApplicationShortcuts : function(){},
+    //initializeApplicationShortcuts : function(){},
     
     addKeyBoardEventListeners : function(){
         var self=this;
@@ -7481,11 +7705,29 @@ namespace("framework.Application",
 
 
     onLaunchWebApplication : function(e){
-        this.openApplication(e);
+        var self = this;
+        if(this._isReady) {
+            this.openApplication(e);
+        }
+        else {
+            setTimeout(function(){
+                self.onLaunchWebApplication(e)
+            },100);
+        }
     },
     
     
     openApplication : function(e){
+        if(e.cancelable){
+            var evt = this.dispatchEvent("beforeopen",true,true, e.data);
+            if(evt.defaultPrevented){
+                console.info("application#openApplication(e) was prevented from running by another process\
+                    listening to the 'beforeopen' event. Original event that was prevented is: ", e);
+                return;
+            };
+        }
+
+
         var appInfo;
         var appID = e.data.appID;
         var appref = e.data.appref;
@@ -7532,6 +7774,10 @@ namespace("framework.Application",
         document.body.style.pointerEvents = "auto";
         document.body.style.opacity = "1";
     },
+
+    getActiveWebApplication : function(appId){
+        return this.currentRunningApplication;
+    },
     
     
     getWebApplicationInfoById : function(appId){
@@ -7570,6 +7816,7 @@ namespace("framework.Application",
             appContainer.innerHTML = "";
         }
         currentApp = null;
+        this.dispatchEvent("appunload", true, true, {});
     },
     
     createApplicationInstance : function(appInfo, callback, force, e){
@@ -7618,7 +7865,9 @@ namespace("framework.Application",
         }
         if(!this.appinstances[ns]){
             this.appinstances[ns] = appInstance;
-            this.recentAppsSelector.prototype.add(appInstance);
+            /*if(this.recentAppsSelector) {
+                this.recentAppsSelector.prototype.add(appInstance);
+            }*/
         }  
     },
     
@@ -7662,27 +7911,27 @@ namespace("framework.Application",
     },
     
     
-    setDesktopTheme : function(data){
-        if("theme" in data){
-            var theme = data.theme;
-            if(theme){
-                var wallpaperNode = this.querySelector("#wallpaper");
-                var applicationBar = this.querySelector(".ApplicationBar");
+    // setDesktopTheme : function(data){
+    //     if("theme" in data){
+    //         var theme = data.theme;
+    //         if(theme){
+    //             var wallpaperNode = this.querySelector("#wallpaper");
+    //             var applicationBar = this.querySelector(".ApplicationBar");
                 
-                if(theme.whitelabel_logo){}
-                if(theme.enable_wallpaper){
-                    wallpaperNode.style.backgroundImage="url(" + theme.wallpaper +")";
-                } else {
-                    wallpaperNode.style.backgroundImage = "none";
-                    wallpaperNode.style.backgroundColor = theme.background_color;
-                }
-                //wallpaperNode.style.opacity = theme.background_brightness;
-                var alphaVal = theme.window_alpha.replace(".","");
-                applicationBar.classList.add("alpha"+alphaVal);
+    //             if(theme.whitelabel_logo){}
+    //             if(theme.enable_wallpaper){
+    //                 wallpaperNode.style.backgroundImage="url(" + theme.wallpaper +")";
+    //             } else {
+    //                 wallpaperNode.style.backgroundImage = "none";
+    //                 wallpaperNode.style.backgroundColor = theme.background_color;
+    //             }
+    //             //wallpaperNode.style.opacity = theme.background_brightness;
+    //             var alphaVal = theme.window_alpha.replace(".","");
+    //             applicationBar.classList.add("alpha"+alphaVal);
                 
-            }
-        }
-    },
+    //         }
+    //     }
+    // },
 
     
     innerHTML:

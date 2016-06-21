@@ -4,6 +4,16 @@ namespace("core.ui.WebComponent",
     '@stylesheets' : [],
     "@cascade"  : true,
     
+    onRenderData : function(data, initChildComponents){
+        if(!this.templates){
+            this.templates = {};
+            this.templates[data.table] = {
+                template : this.querySelector("#" + data.table + "-template"),
+                div : "#" + data.table + "-container"
+            };
+        };
+        this.renderTemplate(data, data.table, initChildComponents);
+    },
     
     renderTemplate : function(data, templateName, initChildComponents, autoInsert){
         initChildComponents = typeof initChildComponents=="boolean"?initChildComponents:false;
@@ -14,6 +24,14 @@ namespace("core.ui.WebComponent",
             alert("error, no '" +templateName+ "' template found to render data");
             return;
         } 
+        
+        if(!templateDefinition.template){
+            throw new Error("No matching template found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace, this);
+        }
+        if(!templateDefinition.div){
+            throw new Error("No matching template container found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace + "\nExpectting a <div> container to wrap a template", this);
+        }
+
         if(templateDefinition.template.parentNode){
             templateDefinition.template.parentNode.removeChild(templateDefinition.template);
         }
@@ -22,11 +40,18 @@ namespace("core.ui.WebComponent",
         d.innerHTML = text;
         
         var container = d;
+        if(!container){
+            throw new Error("No matching template container found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace + "\nExpectting a <div> container to wrap a template", this);
+        }
+
         if(autoInsert){
             if(typeof templateDefinition.div == "string"){
                 container = this.querySelector(templateDefinition.div);
             } else{
                 container = templateDefinition.div;
+            }
+            if(!container){
+                throw new Error("No matching template container found in html to render/populate data for template named: '" + templateName + "' in component: " + this.namespace, this);
             }
             if(templateDefinition.parentTagName){
                 container.innerHTML="";
@@ -62,6 +87,8 @@ namespace("core.ui.WebComponent",
                     oXMLHttpRequest.onreadystatechange  = function() {
                         if (this.readyState == XMLHttpRequest.DONE) {
                             var htmltext = this.responseText;
+                                htmltext = htmltext.replace("[$theme]",self.resourcepath("[$theme]"),"igm");
+                                htmltext = htmltext.replace("[$icon]",self.resourcepath("[$icon]"),"igm")
                             self.constructor.prototype.innerHTML = htmltext;
                             self.constructor.prototype["@href"]=null;
                             var view = self.parseElement();
@@ -118,6 +145,10 @@ namespace("core.ui.WebComponent",
     
     onFocus : function(){},
     
+    getModalValue : function() {
+        console.info("Implement getModalValue() in " + this.namespace + " to return a value when the modal is confirmed as OK/Save.")
+        return null;
+    },
     
     parseElement : function (template, json){
         var templateString = (typeof this.innerHTML === "function") ?

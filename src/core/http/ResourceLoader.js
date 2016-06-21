@@ -1,3 +1,4 @@
+
 /*********************************************************************
  ::USAGE::
     Abstract class -- not to be used by developers directly. Instead, subclasses
@@ -19,14 +20,6 @@ namespace("core.http.ResourceLoader", {
     },
     
     getDefaultMethod : function(meth){
-        /*var method = "GET";
-        if(appconfig.environment == "dev"){
-            method = "GET"
-        }
-        else {
-            method = meth||"POST"
-        }
-        return method;*/
         meth = meth||"GET";
         return meth;
     },

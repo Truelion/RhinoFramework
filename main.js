@@ -15,6 +15,8 @@
 // require mustache
 // require Kruntch
 
+
+//= require core.traits.ResourcePathTransformer
 //= require ui.models.ComponentModel
 //= require w3c.components.HtmlComponent
 //= require ui.Application
@@ -50,7 +52,7 @@
 
 
 
-namespace("framework.Application",
+namespace("core.Application",
 {
     '@inherits' : ui.Application,
     '@cascade'  : false,
@@ -71,21 +73,21 @@ namespace("framework.Application",
         console.info("DEVICE RESOLUTION:", window.innerWidth + " x " + window.innerHeight);
         this.setUserAgentClasses();
         this.initializeUrlRoutesTable();
-        this.initializeHeartBeatMonitor();
+        //this.initializeHeartBeatMonitor();
 
         //STATE
-        this.recentAppsSelector         = this.querySelector(".Navigator .RecentAppsSelectBox");
-        this.startMenu                  = this.querySelector(".ApplicationBar .StartMenu");
-        this.searchBox                  = this.querySelector(".SearchBox");
+        //this.recentAppsSelector         = this.querySelector(".Navigator .RecentAppsSelectBox");
+        //this.startMenu                  = this.querySelector(".ApplicationBar .StartMenu");
+        //this.searchBox                  = this.querySelector(".SearchBox");
         this.wallpaper                  = this.querySelector("#wallpaper");
         this.globalApplicationSpinner   = this.querySelector("#global-application-spinner");
         this.appsScreen                 = this.querySelector(".application-container");
         
         //EVENTS
         this.addEventListener("appopened", this.onApplicationOpened.bind(this), false);
-        if(this.searchBox){
-            this.searchBox.addEventListener("focus", this.onSearchBoxFocused.bind(this), false);
-        }
+        // if(this.searchBox){
+        //     this.searchBox.addEventListener("focus", this.onSearchBoxFocused.bind(this), false);
+        // }
 
         this.addEventListener("startmenu", this.onStartMenuActionReceived.bind(this), false);
         this.addEventListener("notification", this.onNotificationReceived.bind(this), false);
@@ -108,7 +110,23 @@ namespace("framework.Application",
         this.addEventListener("togglemenu", this.onToggleStartMenu.bind(this), false);
         this.addEventListener("hidemenu", this.onHideStartMenu.bind(this), false);
 
+        this.addEventListener("ready", this.onApplicationReady.bind(this), false);
+
         this.bootup();
+    },
+
+    getLocationHashParams : function(){
+        var hash = location.hash.replace("#","");
+        var appinfo = rison.decode(decodeURIComponent(hash));
+        return appinfo;
+    },
+
+    getApplicationContainer : function(){
+        return this.appsScreen;
+    },
+
+    onApplicationReady : function(){
+        this._isReady = true;
     },
 
     onDeviceReady : function(){
@@ -154,7 +172,16 @@ namespace("framework.Application",
         }
     },
     
-    onApplicationOpened : function(e){},
+    onApplicationOpened : function(e){
+        if(e.data && e.data.appref){
+            var appref = this.getWebApplicationInfoByRef(e.data.appref);
+            var ns = appref.namespace;
+            var instance = this.getApplicationInstance(ns);
+            if(instance && instance.onResume) {
+                instance.onResume(e);
+            }
+        }
+    },
     
     
     onApplicationSessionLoaded : function(){
@@ -278,7 +305,6 @@ namespace("framework.Application",
     },
     
     onReleaseApp : function(e){
-        //debugger;
         var self=this;
         var ns = e.data.ns;
         this.removeApplicationInstance(ns);
@@ -291,9 +317,9 @@ namespace("framework.Application",
         }
     },
     
-    onSearchBoxFocused : function(){
-        this.startMenu.prototype.onHideStartMenuPanel();    
-    },
+    // onSearchBoxFocused : function(){
+    //     this.startMenu.prototype.onHideStartMenuPanel();    
+    // },
     
     setUserAgentClasses : function(){
         if(UserAgent.isMobile() || appconfig.ismobile){
@@ -329,7 +355,8 @@ namespace("framework.Application",
             this.element.classList.add("spa");
         }
         setTimeout(function() {
-            self.beginVisitorSession();
+            self.dispatchEvent("sessionloaded", true, true, {});
+            //self.beginVisitorSession();
             self.beginAppRefreshInterval();
         },400);
     },
@@ -377,9 +404,7 @@ namespace("framework.Application",
     },
     
     onToggleFullscreen : function(e){
-        //debugger;
         if(!appconfig.fullscreenmode){return}
-        //if(!UserAgent.isMobile()){return}
         var el = this.element;
         var _FullScreenEnabled =    document.fullscreenEnabled||
                                     document.webkitFullscreenEnabled || 
@@ -449,7 +474,10 @@ namespace("framework.Application",
         var self=this;
         setInterval(function(){
             if(self.currentRunningApplication && self.currentRunningApplication.isFocused()){
-                self.currentRunningApplication.refresh();    
+                if(self.currentRunningApplication.allowRefreshCycle()){
+                //self.currentRunningApplication.refresh();    
+                    self.currentRunningApplication.onRefresh();  
+                }
             }
         }, this.APP_REFRESH_INTERVAL);
     },
@@ -458,42 +486,42 @@ namespace("framework.Application",
         this.currentRunningApplication = app;
     },
     
-    beginVisitorSession : function(id, full){
-        var uri = this.element.getAttribute("data-uri");
-        var action = new core.http.WebAction(uri||ROUTES.DATA.PROFILE, {});
+    // beginVisitorSession : function(id, full){
+    //     var uri = this.element.getAttribute("data-uri");
+    //     var action = new core.http.WebAction(uri||ROUTES.DATA.PROFILE, {});
 
-            action.invoke({
-                onSuccess  : this.onVisitorSessionLoaded.bind(this,full),
-                onFailure  : this.onVisitorSessionFailure.bind(this),
-                onRejected : this.onVisitorSessionFailure.bind(this)
-            });
-    },
+    //         action.invoke({
+    //             onSuccess  : this.onVisitorSessionLoaded.bind(this,full),
+    //             onFailure  : this.onVisitorSessionFailure.bind(this),
+    //             onRejected : this.onVisitorSessionFailure.bind(this)
+    //         });
+    // },
     
-    onVisitorSessionFailure : function(r,text){
-        console.error("failed to load visitor profile: " + text, r);
-    },
+    // onVisitorSessionFailure : function(r,text){
+    //     console.error("failed to load visitor profile: " + text, r);
+    // },
     
-    onVisitorSessionLoaded : function(full,response, responseText){
-        try{
-            var data = JSON.parse(responseText);
-            if(typeof data == "object"){
-                this.storeAccountProfileInSession(data);
-                this.setDesktopTheme(data);
-            }
-        }
-        catch(e){
-            alert("error downloading users profile");
-            console.error(e.message,responseText);
-        }
-    },
+    // onVisitorSessionLoaded : function(full,response, responseText){
+    //     try{
+    //         var data = JSON.parse(responseText);
+    //         if(typeof data == "object"){
+    //             //this.storeAccountProfileInSession(data);
+    //             //this.setDesktopTheme(data);
+    //         }
+    //     }
+    //     catch(e){
+    //         alert("error downloading users profile");
+    //         console.error(e.message,responseText);
+    //     }
+    // },
     
-    storeAccountProfileInSession : function(data){
-        if(Session) {
-            Session.State.AccountProfile = data;
-            Session.State.CurrentProfile = data;
-            this.dispatchEvent("sessionloaded", true, true, {profile:data});
-        }
-    },
+    // storeAccountProfileInSession : function(data){
+    //     if(Session) {
+    //         Session.State.AccountProfile = data;
+    //         Session.State.CurrentProfile = data;
+    //         this.dispatchEvent("sessionloaded", true, true, {profile:data});
+    //     }
+    // },
 
     
     onModalize : function(){},
@@ -516,7 +544,7 @@ namespace("framework.Application",
     },
     
     
-    initializeApplicationShortcuts : function(){},
+    //initializeApplicationShortcuts : function(){},
     
     addKeyBoardEventListeners : function(){
         var self=this;
@@ -573,11 +601,29 @@ namespace("framework.Application",
 
 
     onLaunchWebApplication : function(e){
-        this.openApplication(e);
+        var self = this;
+        if(this._isReady) {
+            this.openApplication(e);
+        }
+        else {
+            setTimeout(function(){
+                self.onLaunchWebApplication(e)
+            },100);
+        }
     },
     
     
     openApplication : function(e){
+        if(e.cancelable){
+            var evt = this.dispatchEvent("beforeopen",true,true, e.data);
+            if(evt.defaultPrevented){
+                console.info("application#openApplication(e) was prevented from running by another process\
+                    listening to the 'beforeopen' event. Original event that was prevented is: ", e);
+                return;
+            };
+        }
+
+
         var appInfo;
         var appID = e.data.appID;
         var appref = e.data.appref;
@@ -624,6 +670,10 @@ namespace("framework.Application",
         document.body.style.pointerEvents = "auto";
         document.body.style.opacity = "1";
     },
+
+    getActiveWebApplication : function(appId){
+        return this.currentRunningApplication;
+    },
     
     
     getWebApplicationInfoById : function(appId){
@@ -662,6 +712,7 @@ namespace("framework.Application",
             appContainer.innerHTML = "";
         }
         currentApp = null;
+        this.dispatchEvent("appunload", true, true, {});
     },
     
     createApplicationInstance : function(appInfo, callback, force, e){
@@ -710,7 +761,9 @@ namespace("framework.Application",
         }
         if(!this.appinstances[ns]){
             this.appinstances[ns] = appInstance;
-            this.recentAppsSelector.prototype.add(appInstance);
+            /*if(this.recentAppsSelector) {
+                this.recentAppsSelector.prototype.add(appInstance);
+            }*/
         }  
     },
     
@@ -754,27 +807,27 @@ namespace("framework.Application",
     },
     
     
-    setDesktopTheme : function(data){
-        if("theme" in data){
-            var theme = data.theme;
-            if(theme){
-                var wallpaperNode = this.querySelector("#wallpaper");
-                var applicationBar = this.querySelector(".ApplicationBar");
+    // setDesktopTheme : function(data){
+    //     if("theme" in data){
+    //         var theme = data.theme;
+    //         if(theme){
+    //             var wallpaperNode = this.querySelector("#wallpaper");
+    //             var applicationBar = this.querySelector(".ApplicationBar");
                 
-                if(theme.whitelabel_logo){}
-                if(theme.enable_wallpaper){
-                    wallpaperNode.style.backgroundImage="url(" + theme.wallpaper +")";
-                } else {
-                    wallpaperNode.style.backgroundImage = "none";
-                    wallpaperNode.style.backgroundColor = theme.background_color;
-                }
-                //wallpaperNode.style.opacity = theme.background_brightness;
-                var alphaVal = theme.window_alpha.replace(".","");
-                applicationBar.classList.add("alpha"+alphaVal);
+    //             if(theme.whitelabel_logo){}
+    //             if(theme.enable_wallpaper){
+    //                 wallpaperNode.style.backgroundImage="url(" + theme.wallpaper +")";
+    //             } else {
+    //                 wallpaperNode.style.backgroundImage = "none";
+    //                 wallpaperNode.style.backgroundColor = theme.background_color;
+    //             }
+    //             //wallpaperNode.style.opacity = theme.background_brightness;
+    //             var alphaVal = theme.window_alpha.replace(".","");
+    //             applicationBar.classList.add("alpha"+alphaVal);
                 
-            }
-        }
-    },
+    //         }
+    //     }
+    // },
 
     
     innerHTML:

@@ -5,7 +5,10 @@ if (!Object.prototype.extend) {
         writable : true,
         value : function(source) {
             for (var property in source) {
-                this[property] = source[property];}
+                if(source.hasOwnProperty(property)){
+                    this[property] = source[property];
+                }
+            }
             return this;
         }
     });
@@ -33,7 +36,40 @@ if (!Object.prototype.watch) {
             }
         }
     });
-}
+};
+
+
+if (!Object.prototype.addChangeListener) {
+    Object.defineProperty(Object.prototype, "addChangeListener", {
+        enumerable : false,
+        configurable : true,
+        writable : true,
+        value : function(prop, handler) {
+            var oldval = this[prop], 
+                newval = oldval, 
+                getter = function() {
+                    return newval;
+                }, 
+                setter = function(val) {
+                    oldval = newval;
+                    var self=this;
+                    setTimeout(function(){
+                        handler.call(self, prop, oldval, val);
+                    },100);
+                    return newval = val;//handler.call(this, prop, oldval, val);
+                };
+            if (delete this[prop]) {// can't watch constants
+                Object.defineProperty(this, prop, {
+                    get : getter,
+                    set : setter,
+                    enumerable : true,
+                    configurable : true
+                });
+            }
+        }
+    });
+};
+
 
 // object.unwatch
 if (!Object.prototype.unwatch) {

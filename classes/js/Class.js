@@ -190,7 +190,7 @@
         if(path.indexOf("~/") >= 0){
             path = path.replace("~/", apppath);
         } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(".","/","g") + "/");
+            path = path.replace("./", apppath + this.namespace.replace(/\./gim,"/") + "/");
         } 
         else if(path.indexOf("http") == 0){
             return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
