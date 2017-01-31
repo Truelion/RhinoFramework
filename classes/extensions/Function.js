@@ -67,3 +67,17 @@ if (!Function.prototype.debounce) {
          }; 
     }
 };
+
+
+if(!Function.prototype.delay){
+  Function.prototype.delay = function(seconds, scope) {
+    // Remove the seconds from the parameters to pass the this function.
+    var args = [].slice.call(arguments, 2);
+    // Call this function with the specified parameters in the specified amount
+    // of seconds.
+    var fnThis = this;
+    return setTimeout(function() {
+      fnThis.apply(scope, args);
+    }, seconds * 1000);
+  };
+}

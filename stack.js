@@ -1,3 +1,5 @@
+appconfig = window.appconfig||{};
+
 //= require extensions/Math
 //= require extensions/Object
 //= require extensions/String
@@ -21,6 +23,7 @@
 //= require w3c.components.HtmlComponent
 //= require ui.Application
 
+//=require src/core/data/CircularBuffer.js
 //=require src/libs/rison.js
 //=require src/core/libs/StorageManager.js
 //=require src/core/data/Accessor.js

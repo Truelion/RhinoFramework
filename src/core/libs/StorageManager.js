@@ -1,30 +1,63 @@
-Array.prototype.where = function(exp){
-    var exp = new Function("$", "return " + exp);
-    var arr=[];
-    for(var i=0; i<=this.length-1; i++){
-        if(exp(this[i])){
-            arr.push(this[i])
-        }
-    }
-    return arr;
-};
 
+namespace("core.data.StorageManager");
+core.data.StorageManager = {
+  isInitialized : false,
 
-
-StorageManager = {
   initialize : function(key){
-    this.key=key;
-    var str = localStorage.getItem(key)||"{}";
-    this.data = JSON.parse(str);
+    if(this.isInitialized){
+      console.warn("core.data.StorageManager: already initialized");
+      return this;
+    } else {
+      this.key=key;
+      var str = localStorage.getItem(key)||"{}";
+      this.data = JSON.parse(str);
+      this.initStorageCapacity();
+      this.startCapacityCheckTimer();
+      if(Config.StorageManager.DO_CAPACITY_CHECK_ON_STARTUP){
+        this.thresholdCapacityCheck();
+      }
+      this.isInitialized=true;
+    }
+  },
+
+  startCapacityCheckTimer : function(){
+    var self=this;
+    this.timer = setInterval(function(){
+      self.thresholdCapacityCheck();
+    },Config.StorageManager.CAPACITY_CHECK_TIMER_INTERVAL);
   },
   
+  initStorageCapacity : function(){
+    var str = JSON.stringify(this.data);
+    var byt = str.length*2;
+    var kbs = byt/1024;
+    var mbs = kbs/1024;
+    var max = Config.StorageManager.PARTITION_SIZE;
+    this.size = {
+      used : kbs,
+      free : max-kbs, //4,800kb
+      total: max
+    };
+    core.EventBus.dispatchEvent("storage:changed", true, true, this.size, this);
+  },
+
+
   reset : function(ns, persist){
-      persist = typeof persist=="boolean"?persist:false;
+      persist = (typeof persist=="boolean")?persist:false;
+      if(!this.data) { this.data = {}};
       this.data[ns] = null;
       delete this.data[ns];
       if(persist){
-        StorageManager.persist();
+        this.persist();
       }
+      this.initStorageCapacity();
+  },
+
+  clean : function(){
+    localStorage.setItem(this.key,"{}");
+    var str = localStorage.getItem(this.key)||"{}";
+    this.data = JSON.parse(str);
+    this.initStorageCapacity();
   },
   
   find : function(ns, id){
@@ -32,87 +65,98 @@ StorageManager = {
   },
   
   commit : function(){
-      StorageManager.persist();
+      this.persist();
   },
-  
-  persist : function(){
-    localStorage.setItem(this.key, JSON.stringify(this.data))
+
+  getKBytes : function(obj){
+    if(!obj){return 0;}
+    var byt = JSON.stringify(obj).length*2;
+    return byt/1024;//in kb
+  },
+
+  canFit : function(obj){
+    if(!obj) { return true}
+    var kbs = this.getKBytes(obj);
+    if(kbs > this.size.free){
+      return false;
+    }
+    return true;
+  },
+
+  exceedsTotalQuota : function(obj){
+    var kbs = this.getKBytes(obj);
+    return kbs > this.size.total;
+  },
+
+  thresholdCapacityCheck : function(obj){
+    var val = this.size.used/this.size.total;
+    if(val >= Config.StorageManager.WARNING_THRESHOLD_CAPACITY) {
+      alert(Config.StorageManager.CAPACITY_WARNING_MSG);
+    }
   },
 
   set : function(ns, obj, persist){
     persist = typeof persist=="boolean"?persist:false;
-    this.data[ns] = obj;
-    if(persist){
-        StorageManager.persist();
+    if(this.canFit(obj)){
+      this.data[ns] = obj;
+      (persist && this.persist());
+      this.initStorageCapacity();
+    } else {
+      console.warn("Object cannot fit into storage space");
     }
   },
 
   get : function(ns){
     return this.data[ns];
   },
-  
-  store : function(ns, obj, persist){
-    persist = typeof persist=="boolean"?persist:false;
-    if(!ns){return}
-    if(typeof obj != "undefined" && obj != null && !obj.oid){
-        obj.oid = Math.uuid(8);
-    }
-    //var objkey = this.key+"."+ns;
-    //console.log("objkey:",objkey)
-    var arr = this.data[ns];//localStorage.getItem(objkey);
-    //console.log("ref:",ref)
-    var item_exists=false;
-    //var arr;
 
-    if(arr && arr.length > 0){
-      //arr = JSON.parse(ref);
-      //console.log("arr:",arr)
-      //alert(arr.length)
-      //if(arr && arr.length > 0){
-        for (var i = 0; i <= arr.length-1; i++){
-          var item = arr[i];
-          //alert(item)
-          if(obj.oid){
-              if(item.oid == obj.oid){
-                arr[i] = obj;
-                item_exists=true;
-                //break;
-              }
-          }
-        }
-      //}
-      if(!item_exists){
-        //alert("bucket found but item dont exist");
-        // if(!obj.oid){
-            // obj.oid = Math.uuid(8);
-        // }
-        //arr = arr.concat(obj);
-        //this.data[ns] = arr;
-        this.data[ns].push(obj)
-        //localStorage.setItem(objkey, JSON.stringify(arr));
-      }
-    } else {
-      //alert("bucket not defined. Creating bucket and inserting item")
-      var arr = [];
-      // if(!obj.oid){
-          // obj.oid = Math.uuid(8);
-      // }
-      arr = arr.concat(obj);
-      this.data[ns] = arr;
-      //localStorage.setItem(objkey, JSON.stringify(arr))
-    }
-    if(persist){
-        StorageManager.persist();
+  persist : function(){
+    try {
+        localStorage.setItem(this.key, JSON.stringify(this.data))
+    } catch(e){
+        console.error(e);
     }
   },
   
+  store : function(ns, obj, persist){
+    this.data[ns] = (this.data[ns]||[]);
+    
+    if(this.canFit(obj)) {      
+      this.data[ns].unshift(obj);
+      (persist && this.persist());
+      this.initStorageCapacity();
+    } else {
+      if(!this.exceedsTotalQuota(obj)) {
+        if(this.data[ns].length > 0){
+          console.warn("STORAGE SPACE LIMIT: New data will be stored at the head, the oldest item will be popped off the tail end.");
+          this.data[ns].pop();
+          this.initStorageCapacity();
+          this.store(ns, obj, persist);
+        } else {
+          throw new Error("The object/data being stored is larger than the total capacity of the allocated localStorage space of: " + this.size.total + "kb")
+        }
+      }
+      else {
+        throw new Error("The object/data being stored is larger than the total capacity of the allocated localStorage space of: " + this.size.total + "kb")
+      }
+    }
+  },
+
+  
   remove : function(ns, persist){
     persist = typeof persist=="boolean"?persist:false;
-    //var objkey = this.key+"."+ns
-    var ref = this.data[ns];//localStorage.getItem(objkey);
+    var ref = this.data[ns];
+    var self=this;
     if(ref){
-      //var arr = JSON.parse(ref);
       return {
+        all : function(){
+          self.data[ns] = null;
+          if(persist){
+            core.data.StorageManager.persist();
+          }
+          core.data.StorageManager.initStorageCapacity();
+        },
+
         where : function(exp){
           var res = ref.where(exp);
           for (var i = 0; i <= res.length-1; i++){
@@ -125,17 +169,18 @@ StorageManager = {
             }
           }
           if(persist){
-            StorageManager.persist();
+            core.data.StorageManager.persist();
           }
-          //console.warn("new arr",arr)
-          //StorageManager.reset(ns)
-          //StorageManager.store(ns,arr)
+          core.data.StorageManager.initStorageCapacity();
         }
       };
     }
     return {
         where : function(exp){
             return []
+        },
+        all : function(){
+          return true;
         }
     };
   }

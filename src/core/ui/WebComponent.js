@@ -7,11 +7,15 @@ namespace("core.ui.WebComponent",
     onRenderData : function(data, initChildComponents){
         if(!this.templates){
             this.templates = {};
+        }
+
+        if(!this.templates[data.table]){
             this.templates[data.table] = {
                 template : this.querySelector("#" + data.table + "-template"),
                 div : "#" + data.table + "-container"
             };
-        };
+        }
+
         this.renderTemplate(data, data.table, initChildComponents);
     },
     

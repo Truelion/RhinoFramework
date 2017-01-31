@@ -4,27 +4,32 @@ namespace("w3c.CSSStyleUtilities");
 
 w3c.CSSStyleUtilities = {
 	__getInheritableStylesheets : function(){
-		var ancestor	= this.ancestor;
-        var classes 	= [];
-        var ancestors 	= [];
+        var ancestor    = this.ancestor;
+        var classes     = [];
+        var ancestors   = [];
         var stylesheets = [];
         
+        //debugger;
         if(this["@cascade"]) {
-        	while(ancestor){
-        		classes.unshift(ancestor.prototype.classname);
-        		var styles = ancestor.prototype["@stylesheets"]||[];
-        		//stylesheets = stylesheets.concat(styles)
-	                ancestors.unshift(ancestor);
-	                for(var i=0; i<=styles.length-1; i++){ 
-	             		stylesheets.push(styles[i]); 	 
-	             	}
-	             	
-        		if(ancestor.prototype["@cascade"]) {
-			    	ancestor = ancestor.prototype.ancestor;
-	            }
-	            else { ancestor=null; break; }
-	        };
-        	stylesheets = stylesheets.concat(this["@stylesheets"]||[]);
+            while(ancestor){
+                classes.unshift(ancestor.prototype.classname);
+                var styles = ancestor.prototype["@stylesheets"]||[];
+                //stylesheets = stylesheets.concat(styles)
+                    ancestors.unshift(ancestor);
+                    for(var i=0; i<=styles.length-1; i++){ 
+                        stylesheets.push(this.resourcepath(styles[i], ancestor.prototype.namespace));     
+                    }
+                    
+                if(ancestor.prototype["@cascade"]) {
+                    ancestor = ancestor.prototype.ancestor;
+                }
+                else { ancestor=null; break; }
+            };
+
+            var this_styles = this["@stylesheets"]||[];
+            for(var i=0; i<=this_styles.length-1; i++){ 
+                stylesheets.unshift(this.resourcepath(this_styles[i],this.namespace));     
+            }
         }
         else {
             stylesheets = ([].concat(this["@stylesheets"]||[]));
@@ -33,44 +38,52 @@ w3c.CSSStyleUtilities = {
         this.classList.push(this.classname);
         return stylesheets;
     },
-    
+
     loadcss: function(url){
-	    var self=this;
-	    var usingSking=false;
-	    var stylesheets = window.loaded_stylesheets;
-	    if (!stylesheets) {
+        var self=this;
+        var usingSking=false;
+        var stylesheets = window.loaded_stylesheets;
+        if (!stylesheets) {
             window.loaded_stylesheets = {};
             stylesheets = window.loaded_stylesheets;}
         
-        if(stylesheets[url]){self.__onStylesheetLoaded(stylesheets[url]); return;}   
-	    if((appconfig.skin && stylesheets[appconfig.skin])){
-	        return;
-	    }
-	    if(appconfig.skin && !stylesheets[appconfig.skin]) {url=appconfig.skin; usingSking=true;}
-		var something_went_wrong = "Error loading stylesheets. Expected an array of style urls or a single url to a stylesheet for this component.";
-		var styles = (url||this["@stylesheets"]);
+        //alert("stylesheets[url]: " + (stylesheets[url]||url))
+        if(stylesheets[url]){
+            self.__onStylesheetLoaded(stylesheets[url]); 
+            return;
+        }   
+        if((appconfig.skin && stylesheets[appconfig.skin])){
+            return;
+        }
+        if(appconfig.skin && !stylesheets[appconfig.skin]) {url=appconfig.skin; usingSking=true;}
+        var something_went_wrong = "Error loading stylesheets. Expected an array of style urls or a single url to a stylesheet for this component.";
+        var styles = (url||this["@stylesheets"]);
 
-		if(styles) {
-			if(styles instanceof Array) {
-				for(var i=0; i<=styles.length-1; i++) {
-					this.loadcss(styles[i]);
-				}
-			}
-			else if(typeof styles === "string" && styles.indexOf("http://") != 0) {
-				var path = this.resourcepath(styles);
-				if(stylesheets[path]){return}
-					
-				var stylenode= document.createElement('style');
-				    stylenode.setAttribute("type", 'text/css');
-					stylenode.setAttribute("rel", 'stylesheet');
-					stylenode.setAttribute("href", path);
-					stylenode.setAttribute("media", 'all');
-					stylenode.setAttribute("component", this.namespace||"");
-					//head.appendChild(stylenode);
-					this.appendStyleSheet(stylenode);
-					stylesheets[path] = stylenode;
-					var oXMLHttpRequest;
-    					try{
+        if(styles) {
+            if(styles instanceof Array) {
+                styles = styles.reverse();
+                for(var i=0; i<=styles.length-1; i++) {
+                    //debugger;
+                    var path = styles[i];//this.resourcepath(styles[i]);
+                    this.loadcss(path);
+                }
+            }
+            else if(typeof styles === "string" && styles.indexOf("http://") != 0) {
+                //var path = this.resourcepath(styles);
+                var path = styles;
+                if(stylesheets[path]){return}
+                    
+                var stylenode= document.createElement('style');
+                    stylenode.setAttribute("type", 'text/css');
+                    stylenode.setAttribute("rel", 'stylesheet');
+                    stylenode.setAttribute("href", path);
+                    stylenode.setAttribute("media", 'all');
+                    stylenode.setAttribute("component", this.namespace||"");
+                    //head.appendChild(stylenode);
+                    this.appendStyleSheet(stylenode);
+                    stylesheets[path] = stylenode;
+                    var oXMLHttpRequest;
+                        try{
                             oXMLHttpRequest = new core.http.XMLHttpRequest;
                         } catch(e){
                             oXMLHttpRequest = new XMLHttpRequest;
@@ -87,23 +100,23 @@ w3c.CSSStyleUtilities = {
                             }
                         }
                         oXMLHttpRequest.send(null);
-			}
-			else if(styles && styles.indexOf("http:") == 0){
-		        var cssNode = document.createElement('link');
-		        cssNode.type = 'text/css';
-				cssNode.setAttribute("component", this.namespace||"");
-		        cssNode.rel = 'stylesheet';
-		        cssNode.href = this.resourcepath(styles);
-		       	this.appendStyleSheet(cssNode);
-				stylesheets[styles] = cssNode;
-				self.__onStylesheetLoaded(cssNode);
-			}
-			else{
-				try{console.warn("Unable to resolve path to stylesheet. Invalid uri: '" + styles + "'")} catch(e){}
-			}
-		}
-		else {}
-		
+            }
+            else if(styles && styles.indexOf("http:") == 0){
+                var cssNode = document.createElement('link');
+                cssNode.type = 'text/css';
+                cssNode.setAttribute("component", this.namespace||"");
+                cssNode.rel = 'stylesheet';
+                cssNode.href = this.resourcepath(styles);
+                this.appendStyleSheet(cssNode);
+                stylesheets[styles] = cssNode;
+                self.__onStylesheetLoaded(cssNode);
+            }
+            else{
+                try{console.warn("Unable to resolve path to stylesheet. Invalid uri: '" + styles + "'")} catch(e){}
+            }
+        }
+        else {}
+        
     },
     
     cssTransform : function(_cssText){

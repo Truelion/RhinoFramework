@@ -1,3 +1,5 @@
+appconfig = window.appconfig||{};
+
 /*!
 Math.uuid.js (v1.4)
 http://www.broofa.com
@@ -276,7 +278,24 @@ if(!String.prototype.htmlUnescape){
                 .replace(/&lt;/g, '<',"g")
                 .replace(/&gt;/g, '>',"g"); 
     }
-}
+};
+
+
+String.prototype.toLocaleString = function(){
+  var key = this.toString();
+  if(Session && Session.Localization && Session.State && Session.State.currentLanguage){
+    if(Session.Localization[Session.State.currentLanguage]){
+      return Session.Localization[Session.State.currentLanguage][key]||
+             Session.Localization[Session.State.currentLanguage][key.toLowerCase()]||key;
+    } else {
+      return key;
+    }
+  }
+  else {
+    return key;
+  }
+};
+
 
 document.createComponent = function(namespace, element, model){
     var Klass = NSRegistry[namespace];
@@ -396,6 +415,20 @@ if (!Function.prototype.debounce) {
     }
 };
 
+
+if(!Function.prototype.delay){
+  Function.prototype.delay = function(seconds, scope) {
+    // Remove the seconds from the parameters to pass the this function.
+    var args = [].slice.call(arguments, 2);
+    // Call this function with the specified parameters in the specified amount
+    // of seconds.
+    var fnThis = this;
+    return setTimeout(function() {
+      fnThis.apply(scope, args);
+    }, seconds * 1000);
+  };
+}
+
 if (!Array.prototype.indexOf) {
     Array.prototype.indexOf = function (searchElement /*, fromIndex */ ) {
         "use strict";
@@ -435,6 +468,19 @@ if(!Array.prototype.toArray){
     };
 };
 
+
+if(!Array.prototype.where){
+    Array.prototype.where = function(exp){
+        var exp = new Function("$", "return " + exp);
+        var arr=[];
+        for(var i=0; i<=this.length-1; i++){
+            if(exp(this[i])){
+                arr.push(this[i])
+            }
+        }
+        return arr;
+    };
+}
 
 if("logging" in appconfig && appconfig.logging != true) {
   for(var k in console){
@@ -667,10 +713,11 @@ prefix = (function () {
                 return this.preInitialize.apply(this, arguments);
             };
             klass.prototype = new F();
+            inheritTraits(klass.prototype, traits);
             inheritProperties(klass.prototype, properties);
             klass.prototype.constructor = klass;
             klass.prototype.ancestor = obj;
-            inheritTraits(klass.prototype, traits);
+            // inheritTraits(klass.prototype, traits);
         }
         return klass;
     };
@@ -942,22 +989,24 @@ browser.DeviceInfo.initialize();
 namespace("core.traits.ResourcePathTransformer");
 
 core.traits.ResourcePathTransformer = {
-    resourcepath : function resourcepath(filepath){
+    resourcepath : function (filepath, ns){
+        filepath = filepath||"";
         var apppath = appconfig.apppath||"";
         filepath = filepath.replace("[$theme]", ("themes/"+appconfig.theme));
         filepath = filepath.replace("[$icon]",  ("themes/"+appconfig.theme) + "/images/icons/");
 
         var path = apppath + filepath;
-        return this.relativeToAbsoluteFilePath(path);
+        return this.relativeToAbsoluteFilePath(path, ns);
     },
     
-    relativeToAbsoluteFilePath : function(path){
+    relativeToAbsoluteFilePath : function(path, ns){
         var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
-        
+        ns = ns||this.namespace;
+
         if(path.indexOf("~/") >= 0){
             path = path.replace("~/", apppath);
         } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + this.namespace.replace(/\./gim,"/") + "/");
+            path = path.replace("./", apppath + ns.replace(/\./gim,"/") + "/");
         } 
         else if(path.indexOf("http") == 0){
             return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
@@ -1093,27 +1142,32 @@ namespace("w3c.CSSStyleUtilities");
 
 w3c.CSSStyleUtilities = {
 	__getInheritableStylesheets : function(){
-		var ancestor	= this.ancestor;
-        var classes 	= [];
-        var ancestors 	= [];
+        var ancestor    = this.ancestor;
+        var classes     = [];
+        var ancestors   = [];
         var stylesheets = [];
         
+        //debugger;
         if(this["@cascade"]) {
-        	while(ancestor){
-        		classes.unshift(ancestor.prototype.classname);
-        		var styles = ancestor.prototype["@stylesheets"]||[];
-        		//stylesheets = stylesheets.concat(styles)
-	                ancestors.unshift(ancestor);
-	                for(var i=0; i<=styles.length-1; i++){ 
-	             		stylesheets.push(styles[i]); 	 
-	             	}
-	             	
-        		if(ancestor.prototype["@cascade"]) {
-			    	ancestor = ancestor.prototype.ancestor;
-	            }
-	            else { ancestor=null; break; }
-	        };
-        	stylesheets = stylesheets.concat(this["@stylesheets"]||[]);
+            while(ancestor){
+                classes.unshift(ancestor.prototype.classname);
+                var styles = ancestor.prototype["@stylesheets"]||[];
+                //stylesheets = stylesheets.concat(styles)
+                    ancestors.unshift(ancestor);
+                    for(var i=0; i<=styles.length-1; i++){ 
+                        stylesheets.push(this.resourcepath(styles[i], ancestor.prototype.namespace));     
+                    }
+                    
+                if(ancestor.prototype["@cascade"]) {
+                    ancestor = ancestor.prototype.ancestor;
+                }
+                else { ancestor=null; break; }
+            };
+
+            var this_styles = this["@stylesheets"]||[];
+            for(var i=0; i<=this_styles.length-1; i++){ 
+                stylesheets.unshift(this.resourcepath(this_styles[i],this.namespace));     
+            }
         }
         else {
             stylesheets = ([].concat(this["@stylesheets"]||[]));
@@ -1122,44 +1176,52 @@ w3c.CSSStyleUtilities = {
         this.classList.push(this.classname);
         return stylesheets;
     },
-    
+
     loadcss: function(url){
-	    var self=this;
-	    var usingSking=false;
-	    var stylesheets = window.loaded_stylesheets;
-	    if (!stylesheets) {
+        var self=this;
+        var usingSking=false;
+        var stylesheets = window.loaded_stylesheets;
+        if (!stylesheets) {
             window.loaded_stylesheets = {};
             stylesheets = window.loaded_stylesheets;}
         
-        if(stylesheets[url]){self.__onStylesheetLoaded(stylesheets[url]); return;}   
-	    if((appconfig.skin && stylesheets[appconfig.skin])){
-	        return;
-	    }
-	    if(appconfig.skin && !stylesheets[appconfig.skin]) {url=appconfig.skin; usingSking=true;}
-		var something_went_wrong = "Error loading stylesheets. Expected an array of style urls or a single url to a stylesheet for this component.";
-		var styles = (url||this["@stylesheets"]);
+        //alert("stylesheets[url]: " + (stylesheets[url]||url))
+        if(stylesheets[url]){
+            self.__onStylesheetLoaded(stylesheets[url]); 
+            return;
+        }   
+        if((appconfig.skin && stylesheets[appconfig.skin])){
+            return;
+        }
+        if(appconfig.skin && !stylesheets[appconfig.skin]) {url=appconfig.skin; usingSking=true;}
+        var something_went_wrong = "Error loading stylesheets. Expected an array of style urls or a single url to a stylesheet for this component.";
+        var styles = (url||this["@stylesheets"]);
 
-		if(styles) {
-			if(styles instanceof Array) {
-				for(var i=0; i<=styles.length-1; i++) {
-					this.loadcss(styles[i]);
-				}
-			}
-			else if(typeof styles === "string" && styles.indexOf("http://") != 0) {
-				var path = this.resourcepath(styles);
-				if(stylesheets[path]){return}
-					
-				var stylenode= document.createElement('style');
-				    stylenode.setAttribute("type", 'text/css');
-					stylenode.setAttribute("rel", 'stylesheet');
-					stylenode.setAttribute("href", path);
-					stylenode.setAttribute("media", 'all');
-					stylenode.setAttribute("component", this.namespace||"");
-					//head.appendChild(stylenode);
-					this.appendStyleSheet(stylenode);
-					stylesheets[path] = stylenode;
-					var oXMLHttpRequest;
-    					try{
+        if(styles) {
+            if(styles instanceof Array) {
+                styles = styles.reverse();
+                for(var i=0; i<=styles.length-1; i++) {
+                    //debugger;
+                    var path = styles[i];//this.resourcepath(styles[i]);
+                    this.loadcss(path);
+                }
+            }
+            else if(typeof styles === "string" && styles.indexOf("http://") != 0) {
+                //var path = this.resourcepath(styles);
+                var path = styles;
+                if(stylesheets[path]){return}
+                    
+                var stylenode= document.createElement('style');
+                    stylenode.setAttribute("type", 'text/css');
+                    stylenode.setAttribute("rel", 'stylesheet');
+                    stylenode.setAttribute("href", path);
+                    stylenode.setAttribute("media", 'all');
+                    stylenode.setAttribute("component", this.namespace||"");
+                    //head.appendChild(stylenode);
+                    this.appendStyleSheet(stylenode);
+                    stylesheets[path] = stylenode;
+                    var oXMLHttpRequest;
+                        try{
                             oXMLHttpRequest = new core.http.XMLHttpRequest;
                         } catch(e){
                             oXMLHttpRequest = new XMLHttpRequest;
@@ -1176,23 +1238,23 @@ w3c.CSSStyleUtilities = {
                             }
                         }
                         oXMLHttpRequest.send(null);
-			}
-			else if(styles && styles.indexOf("http:") == 0){
-		        var cssNode = document.createElement('link');
-		        cssNode.type = 'text/css';
-				cssNode.setAttribute("component", this.namespace||"");
-		        cssNode.rel = 'stylesheet';
-		        cssNode.href = this.resourcepath(styles);
-		       	this.appendStyleSheet(cssNode);
-				stylesheets[styles] = cssNode;
-				self.__onStylesheetLoaded(cssNode);
-			}
-			else{
-				try{console.warn("Unable to resolve path to stylesheet. Invalid uri: '" + styles + "'")} catch(e){}
-			}
-		}
-		else {}
-		
+            }
+            else if(styles && styles.indexOf("http:") == 0){
+                var cssNode = document.createElement('link');
+                cssNode.type = 'text/css';
+                cssNode.setAttribute("component", this.namespace||"");
+                cssNode.rel = 'stylesheet';
+                cssNode.href = this.resourcepath(styles);
+                this.appendStyleSheet(cssNode);
+                stylesheets[styles] = cssNode;
+                self.__onStylesheetLoaded(cssNode);
+            }
+            else{
+                try{console.warn("Unable to resolve path to stylesheet. Invalid uri: '" + styles + "'")} catch(e){}
+            }
+        }
+        else {}
+        
     },
     
     cssTransform : function(_cssText){
@@ -1996,8 +2058,8 @@ namespace("ui.Application",
         this.head           = document.getElementsByTagName("head")[0];
         this.configscript   = document.querySelector("script[id='config']")||
                               document.querySelector("script");
-        StorageManager.initialize((appconfig.storagekey||appconfig.namespace)+"_"+ (appconfig.appid||Math.uuid2()) );
-        
+        //StorageManager.initialize((appconfig.storagekey||appconfig.namespace)+"_"+ (appconfig.appid||Math.uuid2()) );
+        core.data.StorageManager.initialize((appconfig.storagekey||appconfig.namespace)+"_"+ (appconfig.appid||Math.uuid2()) );
         if(window.addEventListener){
             window.addEventListener ("load", this.onLoad.bind(this), true);
             window.addEventListener ("hashchange", this.onLocationHashChanged.bind(this), true);
@@ -2117,6 +2179,49 @@ namespace("ui.Application",
     }'
 });
 
+
+
+namespace("core.data.CircularBuffer",{
+  initialize : function(size, arr){
+    this.size = size||20000;
+    this.buf = (arr||new Array());
+    this.readI = 0;
+    this.writeI = 0;
+    this.trim()
+  },
+  
+  trim : function(){
+    this.buf.splice(this.size);
+  },
+  
+  read : function(){
+    var o = this.buf[this.readI];
+    this.readI = (this.readI+1)%this.size;
+    return o;
+  },
+  
+  write : function(o, callback){
+    if(o instanceof Array){this.writeArray(o);return};
+    this.buf[this.writeI] = o;
+    this.writeI = (this.writeI+1)%this.size;
+    callback(this);
+  },
+
+  writeArray : function(arr){
+    for(var i=0; i<=arr.length-1; i++){
+      var o = arr[i];
+      this.write(o);
+    }
+  },
+
+  isFull : function(){
+    return this.buf.length == this.size;
+  },
+
+  data : function(){
+    return this.buf;
+  }
+});
 
 //////////////////////////////////////////////////
 //
@@ -2619,33 +2724,66 @@ rison.parser.prototype.next = function () {
     return c;
 };
 
-Array.prototype.where = function(exp){
-    var exp = new Function("$", "return " + exp);
-    var arr=[];
-    for(var i=0; i<=this.length-1; i++){
-        if(exp(this[i])){
-            arr.push(this[i])
-        }
-    }
-    return arr;
-};
 
+namespace("core.data.StorageManager");
+core.data.StorageManager = {
+  isInitialized : false,
 
-
-StorageManager = {
   initialize : function(key){
-    this.key=key;
-    var str = localStorage.getItem(key)||"{}";
-    this.data = JSON.parse(str);
+    if(this.isInitialized){
+      console.warn("core.data.StorageManager: already initialized");
+      return this;
+    } else {
+      this.key=key;
+      var str = localStorage.getItem(key)||"{}";
+      this.data = JSON.parse(str);
+      this.initStorageCapacity();
+      this.startCapacityCheckTimer();
+      if(Config.StorageManager.DO_CAPACITY_CHECK_ON_STARTUP){
+        this.thresholdCapacityCheck();
+      }
+      this.isInitialized=true;
+    }
+  },
+
+  startCapacityCheckTimer : function(){
+    var self=this;
+    this.timer = setInterval(function(){
+      self.thresholdCapacityCheck();
+    },Config.StorageManager.CAPACITY_CHECK_TIMER_INTERVAL);
   },
   
+  initStorageCapacity : function(){
+    var str = JSON.stringify(this.data);
+    var byt = str.length*2;
+    var kbs = byt/1024;
+    var mbs = kbs/1024;
+    var max = Config.StorageManager.PARTITION_SIZE;
+    this.size = {
+      used : kbs,
+      free : max-kbs, //4,800kb
+      total: max
+    };
+    core.EventBus.dispatchEvent("storage:changed", true, true, this.size, this);
+  },
+
+
   reset : function(ns, persist){
-      persist = typeof persist=="boolean"?persist:false;
+      persist = (typeof persist=="boolean")?persist:false;
+      if(!this.data) { this.data = {}};
       this.data[ns] = null;
       delete this.data[ns];
       if(persist){
-        StorageManager.persist();
+        this.persist();
       }
+      this.initStorageCapacity();
+  },
+
+  clean : function(){
+    localStorage.setItem(this.key,"{}");
+    var str = localStorage.getItem(this.key)||"{}";
+    this.data = JSON.parse(str);
+    this.initStorageCapacity();
   },
   
   find : function(ns, id){
@@ -2653,87 +2791,98 @@ StorageManager = {
   },
   
   commit : function(){
-      StorageManager.persist();
+      this.persist();
   },
-  
-  persist : function(){
-    localStorage.setItem(this.key, JSON.stringify(this.data))
+
+  getKBytes : function(obj){
+    if(!obj){return 0;}
+    var byt = JSON.stringify(obj).length*2;
+    return byt/1024;//in kb
+  },
+
+  canFit : function(obj){
+    if(!obj) { return true}
+    var kbs = this.getKBytes(obj);
+    if(kbs > this.size.free){
+      return false;
+    }
+    return true;
+  },
+
+  exceedsTotalQuota : function(obj){
+    var kbs = this.getKBytes(obj);
+    return kbs > this.size.total;
+  },
+
+  thresholdCapacityCheck : function(obj){
+    var val = this.size.used/this.size.total;
+    if(val >= Config.StorageManager.WARNING_THRESHOLD_CAPACITY) {
+      alert(Config.StorageManager.CAPACITY_WARNING_MSG);
+    }
   },
 
   set : function(ns, obj, persist){
     persist = typeof persist=="boolean"?persist:false;
-    this.data[ns] = obj;
-    if(persist){
-        StorageManager.persist();
+    if(this.canFit(obj)){
+      this.data[ns] = obj;
+      (persist && this.persist());
+      this.initStorageCapacity();
+    } else {
+      console.warn("Object cannot fit into storage space");
     }
   },
 
   get : function(ns){
     return this.data[ns];
   },
-  
-  store : function(ns, obj, persist){
-    persist = typeof persist=="boolean"?persist:false;
-    if(!ns){return}
-    if(typeof obj != "undefined" && obj != null && !obj.oid){
-        obj.oid = Math.uuid(8);
-    }
-    //var objkey = this.key+"."+ns;
-    //console.log("objkey:",objkey)
-    var arr = this.data[ns];//localStorage.getItem(objkey);
-    //console.log("ref:",ref)
-    var item_exists=false;
-    //var arr;
 
-    if(arr && arr.length > 0){
-      //arr = JSON.parse(ref);
-      //console.log("arr:",arr)
-      //alert(arr.length)
-      //if(arr && arr.length > 0){
-        for (var i = 0; i <= arr.length-1; i++){
-          var item = arr[i];
-          //alert(item)
-          if(obj.oid){
-              if(item.oid == obj.oid){
-                arr[i] = obj;
-                item_exists=true;
-                //break;
-              }
-          }
-        }
-      //}
-      if(!item_exists){
-        //alert("bucket found but item dont exist");
-        // if(!obj.oid){
-            // obj.oid = Math.uuid(8);
-        // }
-        //arr = arr.concat(obj);
-        //this.data[ns] = arr;
-        this.data[ns].push(obj)
-        //localStorage.setItem(objkey, JSON.stringify(arr));
-      }
-    } else {
-      //alert("bucket not defined. Creating bucket and inserting item")
-      var arr = [];
-      // if(!obj.oid){
-          // obj.oid = Math.uuid(8);
-      // }
-      arr = arr.concat(obj);
-      this.data[ns] = arr;
-      //localStorage.setItem(objkey, JSON.stringify(arr))
-    }
-    if(persist){
-        StorageManager.persist();
+  persist : function(){
+    try {
+        localStorage.setItem(this.key, JSON.stringify(this.data))
+    } catch(e){
+        console.error(e);
     }
   },
   
+  store : function(ns, obj, persist){
+    this.data[ns] = (this.data[ns]||[]);
+    
+    if(this.canFit(obj)) {      
+      this.data[ns].unshift(obj);
+      (persist && this.persist());
+      this.initStorageCapacity();
+    } else {
+      if(!this.exceedsTotalQuota(obj)) {
+        if(this.data[ns].length > 0){
+          console.warn("STORAGE SPACE LIMIT: New data will be stored at the head, the oldest item will be popped off the tail end.");
+          this.data[ns].pop();
+          this.initStorageCapacity();
+          this.store(ns, obj, persist);
+        } else {
+          throw new Error("The object/data being stored is larger than the total capacity of the allocated localStorage space of: " + this.size.total + "kb")
+        }
+      }
+      else {
+        throw new Error("The object/data being stored is larger than the total capacity of the allocated localStorage space of: " + this.size.total + "kb")
+      }
+    }
+  },
+
+  
   remove : function(ns, persist){
     persist = typeof persist=="boolean"?persist:false;
-    //var objkey = this.key+"."+ns
-    var ref = this.data[ns];//localStorage.getItem(objkey);
+    var ref = this.data[ns];
+    var self=this;
     if(ref){
-      //var arr = JSON.parse(ref);
       return {
+        all : function(){
+          self.data[ns] = null;
+          if(persist){
+            core.data.StorageManager.persist();
+          }
+          core.data.StorageManager.initStorageCapacity();
+        },
+
         where : function(exp){
           var res = ref.where(exp);
           for (var i = 0; i <= res.length-1; i++){
@@ -2746,17 +2895,18 @@ StorageManager = {
             }
           }
           if(persist){
-            StorageManager.persist();
+            core.data.StorageManager.persist();
           }
-          //console.warn("new arr",arr)
-          //StorageManager.reset(ns)
-          //StorageManager.store(ns,arr)
+          core.data.StorageManager.initStorageCapacity();
         }
       };
     }
     return {
         where : function(exp){
             return []
+        },
+        all : function(){
+          return true;
         }
     };
   }
@@ -6110,11 +6260,15 @@ namespace("core.ui.WebComponent",
     onRenderData : function(data, initChildComponents){
         if(!this.templates){
             this.templates = {};
+        }
+
+        if(!this.templates[data.table]){
             this.templates[data.table] = {
                 template : this.querySelector("#" + data.table + "-template"),
                 div : "#" + data.table + "-container"
             };
-        };
+        }
+
         this.renderTemplate(data, data.table, initChildComponents);
     },
     
@@ -6692,8 +6846,8 @@ namespace("core.ui.ModalScreen",
         setTimeout(function(){
             self.cancelButton = self.querySelector(".button-bar .cancel.button");
             self.okButton = self.querySelector(".button-bar .ok.button");
-            self.cancelButton.addEventListener("click", self.onModalWantsToExit.bind(self), false);
-            self.okButton.addEventListener("click", self.onModalWantsToConfirm.bind(self), false);
+            self.cancelButton && self.cancelButton.addEventListener("click", self.onModalWantsToExit.bind(self), false);
+            self.okButton && self.okButton.addEventListener("click", self.onModalWantsToConfirm.bind(self), false);
         }, 500);
     },
 
@@ -6708,30 +6862,34 @@ namespace("core.ui.ModalScreen",
     onExitModal : function(e){
         e.preventDefault();
         e.stopPropagation();
-        this.dispatchEvent("exitmodal", true, true, e.data);
-        this.close();
+        var evt = this.dispatchEvent("exitmodal", true, true, e.data);
+        if(!evt.defaultPrevented) {
+            this.close();
+        }
     },
     
     onConfirmModal : function(e){
         e.preventDefault();
         e.stopPropagation();
-        this.dispatchEvent("confirmmodal", true, true, this.componentOwner.getModalValue());
-        this.close();
+        var evt = this.dispatchEvent("confirmmodal", true, true, this.componentOwner.getModalValue());
+        
+        if(!evt.defaultPrevented) {
+            this.close();
+        }
     },
     
     close : function(){
-        //this.owner.element.removeChild(this.element);
-        //application.element.removeChild(this.element);
         try{application.removeModalScreen(this);}
         catch(e){}
 
     },
     
     open : function(e){
-        //this.owner.element.appendChild(this.element);
-        //application.element.appendChild(this.element);
         application.setModalScreen(this);
-        this.componentOwner.onFocus(e);
+        try { this.componentOwner.onFocus(e) }
+        catch(err){
+            console.error(err.message)
+        }
     },
     
     setZindex : function(index){

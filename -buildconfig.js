@@ -6,11 +6,11 @@ BUILDCONFIG = {
 		"src"
 	],
 	
-	Input : "main.js",
+	Input : "stack.js",
 	
 	Output : {
-		SourcePath:"resources/src/framework.js",
-		CompressedPath: "resources/src/framework.min.js"
+		SourcePath:"resources/src/stack.js",
+		CompressedPath: "resources/src/stack.min.js"
 	},
 	
 	Verbos:true

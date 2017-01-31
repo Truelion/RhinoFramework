@@ -59,4 +59,21 @@ if(!String.prototype.htmlUnescape){
                 .replace(/&lt;/g, '<',"g")
                 .replace(/&gt;/g, '>',"g"); 
     }
-}
+};
+
+
+String.prototype.toLocaleString = function(){
+  var key = this.toString();
+  if(Session && Session.Localization && Session.State && Session.State.currentLanguage){
+    if(Session.Localization[Session.State.currentLanguage]){
+      return Session.Localization[Session.State.currentLanguage][key]||
+             Session.Localization[Session.State.currentLanguage][key.toLowerCase()]||key;
+    } else {
+      return key;
+    }
+  }
+  else {
+    return key;
+  }
+};
+
