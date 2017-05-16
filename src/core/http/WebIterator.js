@@ -1,4 +1,3 @@
-//= require core.http.XMLHttpRequest
 
 namespace("core.http.WebIterator", {
     '@inherits': core.http.WebAction,
@@ -9,6 +8,10 @@ namespace("core.http.WebIterator", {
         this.name=name;
         this.owner=owner;
         this.dir=1;
+        this.configureDataMappings({
+            total:"total", 
+            count:"count"
+        });
         return this;
     },
 
@@ -35,8 +38,11 @@ namespace("core.http.WebIterator", {
     },
     
     itemsPerPage : function(){
-        var count = this.accessor.get(this.data_mapping.count).data||this.params.count;
-        return count;
+        /*var count = this.data_mapping.count||this.params.count;
+        return count;*/
+        var count_json_path = this.data_mapping.count;
+        var f = new Function("$", "return $." + count_json_path);
+        return f(this.data);
     },
     
     isLastPage : function(){
@@ -100,8 +106,9 @@ namespace("core.http.WebIterator", {
     },
     
     getTotalRecords : function(data, path){
-        var total = this.accessor.get(this.data_mapping.total).data||this.data.total;
-        return total;
+        var total_json_path = this.data_mapping.total;
+        var f = new Function("$", "return $." + total_json_path);
+        return f(this.data);
     },
     
     /*onstatechange : function(){
@@ -133,7 +140,6 @@ namespace("core.http.WebIterator", {
     onSuccess : function(r, responseText){
         var data = JSON.parse(r.responseText);
         this.data=data;
-        this.accessor = new core.data.Accessor(this.data);
         if(this.isIterable()) {
             (this.dir==1)?
                 this.onNext(r, data):
@@ -150,7 +156,7 @@ namespace("core.http.WebIterator", {
     onPrevious : function(xhr, data){
         console.log("onPrevious",data);
         this.options.onPrevious(xhr, data);
-    },
+    }
 
     
     /*open : function(method, path , async){

@@ -1,0 +1,48 @@
+.TodoMVC {}
+.TodoMVC section#main,
+.TodoMVC #footer{
+	display: block;
+}
+
+.TodoMVC #new-todo{
+	padding: 16px;
+}
+
+.TodoMVC.compactview section#main,
+.TodoMVC.compactview #footer{
+	display: none;
+}
+
+.TodoMVC .todo .view,
+.TodoMVC .todo .view label {
+	pointer-events: none;
+}
+
+.TodoMVC .todo .view .destroy {
+	pointer-events: all;
+}
+
+
+
+.TodoMVC #info {
+	margin: 80px auto 0;
+}
+
+.TodoMVC #filters li button {
+	color: inherit;
+	margin: 0px 3px;
+	padding: 3px 7px;
+	text-decoration: none;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	line-height: 13px;
+	cursor: pointer;
+}
+.TodoMVC #filters li button.selected {
+	border-color:rgba(175, 47, 47, 0.2);
+}
+
+
+.TodoMVC #filters li button:hover {
+    text-decoration: underline;
+}

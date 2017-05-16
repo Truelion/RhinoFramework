@@ -1,10 +1,17 @@
+//= require core.ui.HtmlComponent
+
 namespace("core.ui.WebComponent", 
 {
-    '@inherits' : w3c.HtmlComponent,
+    '@inherits' : core.ui.HtmlComponent,
     '@stylesheets' : [],
     "@cascade"  : true,
     
     onRenderData : function(data, initChildComponents){
+        this.initTemplateDefinitions(data);
+        this.renderTemplate(data, data.table, initChildComponents);
+    },
+
+    initTemplateDefinitions : function(data){
         if(!this.templates){
             this.templates = {};
         }
@@ -12,18 +19,19 @@ namespace("core.ui.WebComponent",
         if(!this.templates[data.table]){
             this.templates[data.table] = {
                 template : this.querySelector("#" + data.table + "-template"),
-                div : "#" + data.table + "-container"
+                div : this.querySelector("#" + data.table + "-container")||this.querySelector("#" + data.table)
             };
         }
-
-        this.renderTemplate(data, data.table, initChildComponents);
+        return this.templates;
     },
     
     renderTemplate : function(data, templateName, initChildComponents, autoInsert){
         initChildComponents = typeof initChildComponents=="boolean"?initChildComponents:false;
         autoInsert = typeof autoInsert=="boolean"?autoInsert:true;
         
-        var templateDefinition = this.templates[templateName];
+        var templates = this.initTemplateDefinitions(data);
+
+        var templateDefinition = templates[templateName];
         if(!templateDefinition){
             alert("error, no '" +templateName+ "' template found to render data");
             return;

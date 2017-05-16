@@ -14,7 +14,7 @@ UrlHashState = {
     initialize : function(){
       var self=this;
        this.parent();
-       this.addEventListener('showdashboard', this.onReturnToDashboardHash.bind(this), false);
+       //this.addEventListener('showdashboard', this.onReturnToDashboardHash.bind(this), false);
        this.addEventListener("appopened", this.onApplicationOpened2.bind(this), false);
        this.initializeURLHashing();
        window.onbeforeunload = function () {
@@ -66,10 +66,10 @@ UrlHashState = {
             }
         }, false);
 
-        var h = window.location.hash;
-        if(!h||(h && h.length <=0)){
-            window.location.hash = defaultHashPath;
-        }
+        // var h = window.location.hash;
+        // if(!h||(h && h.length <=0)){
+        //     window.location.hash = defaultHashPath;
+        // }
     },
 
 

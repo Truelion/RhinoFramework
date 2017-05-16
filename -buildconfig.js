@@ -1,16 +1,15 @@
 BUILDCONFIG = {
 	LoadPaths:[
 		"/", 
-		"classes", 
-		"libs",
-		"src"
+		"src", 
+		"libs"
 	],
 	
-	Input : "stack.js",
+	Input : "main.js",
 	
 	Output : {
-		SourcePath:"resources/src/stack.js",
-		CompressedPath: "resources/src/stack.min.js"
+		SourcePath:"dist/main.src.js",
+		CompressedPath: "dist/main.min.js"
 	},
 	
 	Verbos:true

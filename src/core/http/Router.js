@@ -2,6 +2,17 @@ namespace("core.http.Router", {
     initialize : function(){
         this.routes = {};    
     },
+
+    process : function(ROUTES){
+        for(var KEY in ROUTES) {
+           if(typeof ROUTES[KEY] == "object"){
+                this.add(ROUTES[KEY])
+           } 
+           else if(typeof ROUTES[KEY] == "string"){
+               this.add(KEY, ROUTES[KEY])
+           }
+        }
+    },
     
     add : function(key, handler){
         this.routes[key] = handler;

@@ -1,0 +1,16 @@
+.UserDropdownList {
+	overflow: hidden;
+	padding-bottom:4px;
+}
+
+.UserDropdownList select {
+	width: 115% !important;
+}
+
+.UserDropdownList label {
+	font-size: 10px;
+	padding: 4px;
+	line-height: 9px;
+	font-weight: normal;
+	color: #777;
+}

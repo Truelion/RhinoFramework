@@ -46,7 +46,12 @@ namespace("core.http.WebAction", {
         var self=this;
         path = path.replace(/\{([a-zA-Z0-9\.]+)\}/g, function(){
           var propName = arguments[1];
-          return (self.params[propName]||eval(propName)||"")
+          var propval = "";
+          try{
+            propval = eval(propName);
+          } catch(e){propval=""};
+          
+          return (self.params[propName]||propval)
         });
 
         return path;
@@ -98,15 +103,12 @@ namespace("core.http.WebAction", {
                 } else{
                     try{
                         var data = JSON.parse(r.responseText);
-                        if(data.result && data.result.status == "error"){
+                        if(typeof data != "object"){
                             this.onReject(r,data);
                        } else {
-                            if (data.result && data.result.state == "LOGOUT") {
-                                // Force user to the login page
-                                this.onLogout();
-                            } else {
+                            if (data) {
                                 this.onSuccess(r);
-                            }
+                            } 
                         }
                     } catch(e){
                        this.onReject(r); 
@@ -126,11 +128,11 @@ namespace("core.http.WebAction", {
         location.href=resolvedUrl;
     },
     
-    onReject : function(xhr,data){
-        if(this.options.onReject) {this.options.onReject(xhr,data); }
+    onReject : function(xhr){
+        if(this.options.onReject) {this.options.onReject(xhr); }
         application.dispatchEvent("notification",true,true,{
             type:"UserError",
-            message:data.result.message||"An unknown user error occurred",
+            message:("An http error occurred:\n" + xhr.responseText),
             httpresponse:xhr
         }); 
     },

@@ -1,4 +1,3 @@
-
 namespace("core.data.CircularBuffer",{
   initialize : function(size, arr){
     this.size = size||20000;

@@ -1,0 +1,57 @@
+{
+	"table" : "accounts",
+
+	"columns" : [
+		{"title":"Código", "path":"code", "filter":{"type":"core.ui.DataGridTextFilter", "value":""}},
+		{"title":"Rut", "path":"code", "filter":{"type":"core.ui.DataGridTextFilter", "value":""}},
+		{"title":"Estado", "path":"status", "filter":{"type":"core.ui.DataGridTextFilter", "value":""}},
+		{"title":"Nombre", "path":"fullname", "filter":{"type":"core.ui.DataGridTextFilter", "values":["Todos", "Contiene", "No Contiene", "Comienza con", "Igual a", "Distinto que", "Mayor que", "Menor que"], "value":""}}
+	],
+	"items" : [
+		{
+			"visible": true,
+			"id" : 1000,
+			"active_account" : true,
+			"email" : "rosanne.dewit@todo.com",
+			"photo_src": "resources/images/employees/rosanne_de_wit.png",
+			"status" : "S",
+			"fullname" : "Ms. Rosanne DeWitt",
+			"gender" : "Female",
+			"first_name": "Rosanne",
+			"last_name" : "DeWitt",
+			"role" : "Admin",
+			"username" : "rosanne.dewit",
+			"password" : ""
+		},
+		{
+			"visible": true,
+			"id" : 1020,
+			"active_account" : true,
+			"email" : "dick.osborne@todo.com",
+			"photo_src": "resources/images/employees/martijn_mulder.png",
+			"status" : "S",
+			"fullname" : "Mr. Osborne",
+			"gender" : "Male",
+			"first_name": "Dick",
+			"last_name" : "Osborne",
+			"role" : "Editor",
+			"username" : "dick.osborne",
+			"password" : ""
+		},
+		{
+			"visible": true,
+			"id" : 1030,
+			"active_account" : true,
+			"email" : "Harry.Mulder@todo.com",
+			"photo_src": "resources/images/employees/freek_huige.png",
+			"status" : "S",
+			"fullname" : "Mr. Harry",
+			"gender" : "Male",
+			"first_name": "Harry",
+			"last_name" : "Mulder",
+			"role" : "Manager",
+			"username" : "harry.mulder",
+			"password" : ""
+		}
+	] 
+}

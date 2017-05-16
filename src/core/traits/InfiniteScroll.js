@@ -11,8 +11,9 @@ InfiniteScroll = {
         var self=this;
         this.parent();
 
-        var scrollArea = this.getInfiniteScrollableItem();
-            scrollArea.addEventListener("scroll", this.onContentScrolled.bind(this).debounce(500), false);
+        if(!this.getInfiniteScrollableItem){
+            throw new Error("InfiniteScroll requires " + this.namespace + " to implement the getInfiniteScrollableItem().")
+        }
 
         if(!this.onContentScrolledBottom){
             throw new Error("InfiniteScroll requires " + this.namespace + " to implement the onContentScrolledBottom() callback.")
@@ -20,6 +21,10 @@ InfiniteScroll = {
         if(!this.onContentScrolledTop){
             throw new Error("InfiniteScroll requires " + this.namespace + " to implement the onContentScrolledTop() callback.")
         }
+
+        var scrollArea = this.getInfiniteScrollableItem();
+            scrollArea.addEventListener("scroll", this.onContentScrolled.bind(this).debounce(500), false);
+
 
         this.addEventListener("scrolltop", this.onContentScrolledTop.bind(this), false);
         this.addEventListener("scrollbottom", this.onContentScrolledBottom.bind(this).debounce(100), false);

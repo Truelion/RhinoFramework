@@ -1,0 +1,98 @@
+<div>
+	<section id="todoapp">
+		<!--div namespace="todo.ui.UserList"></div-->
+
+		<div namespace="todo.ui.WelcomeUserBar"></div>
+		
+		<header id="header">
+			<h1>todos</h1>
+			<input type="text" id="new-todo" name="new-todo" placeholder="What needs to be done?" autofocus/>
+		</header>
+		
+		<section id="main">
+			<div id="todo-list" namespace="todo.ui.TodoListDataGrid">
+				<div id="todo_list-container">
+					<script id="todo_list-template" type="text/x-kruntch-template">
+						<table>
+							<caption>Todo List</caption>
+							<thead>
+								<th scope="col">
+									<input id="toggle-all-completed" 
+									class="toggle" type="checkbox"/>
+								</th>
+								<th scope="col">Title</th>
+								<th scope="col" style="width: 144px;" class="column" data-action="filter" data-filter-name="userid">
+									<div namespace="todo.ui.UserDropdownList" 
+										id="username_filter" data-empty-option="- Any -">
+										<label for="user-select">
+											Assigned To:
+										</label>
+										<select 
+											name ="user-select" 
+											class="user-select" 
+											style="width: 100% !important;"></select>
+									</div>
+								</th>
+								<th scope="col">
+									<span class="fa fa-trash"></span>
+								</th>
+							</thead>
+							<for each="items">
+								<tr scope="row" class="row view todo [Completed]" data-id="[id]" tabindex="[#]">
+									<td scope="row" class="action cell" data-action="toggle">
+										<input class="toggle" type="checkbox" [CheckedIfCompleted]>
+									</td>
+									<td scope="row" class="cell">
+										<input class="label" type="text" value="[title]"/>
+									</td>
+									<td scope="row" class="cell">
+										<div namespace="todo.ui.UserDropdownList" data-userid="[userid]" data-empty-option="- Select -">
+											<select class="user-assignment"></select>
+										</div>
+									</td>
+									<td scope="row" class="action cell" data-action="destroy" style="text-align: center;">
+										<button class="destroy" data-id="[id]"></button>
+									</td>
+								</tr>
+								{{
+									Completed : function(){
+										return (this.status == "completed")?"completed":"";
+									},
+									CheckedIfCompleted : function(){
+										return (this.status == "completed")?"checked":"";
+									}
+								}}
+							</for>
+						</table>
+					</script>
+				</div>
+			</div>
+		</section>
+
+		<footer id="footer">
+			<div id="button_bar-container">
+				<script id="button_bar-template" type="text/x-kruntch-template">
+					<span id="todo-count"><strong>[activeTodoCount]</strong> [activeTodoWord] left</span>
+					<ul id="filters">
+						<li id="all">
+							<button class="status-filter-button" href="#(appref:activities/TodoMVC,status:all)">All</button>
+						</li>
+						<li id="active">
+							<button class="status-filter-button" href="#(appref:activities/TodoMVC,status:active)">Active</button>
+						</li>
+						<li id="completed">
+							<button class="status-filter-button" href="#(appref:activities/TodoMVC,status:completed)">Completed</button>
+						</li>
+					</ul>
+				</script>
+			</div>
+			<button id="clear-completed">Clear completed</button>
+		</footer>
+
+	</section>
+	<footer id="info">
+		<p>Click to edit a todo</p>
+		<p>Created by <a href="http://sindresorhus.com">Jason E. Smith</a></p>
+		<p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+	</footer>
+</div>

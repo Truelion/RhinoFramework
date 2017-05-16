@@ -1,4 +1,4 @@
-//=require core.ui.Panel
+
 namespace("core.ui.WindowPanel", {
     '@inherits' : core.ui.Panel,
     "@cascade"  : true,

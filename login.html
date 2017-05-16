@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+        <meta http-equiv="Content-Security-Policy" content="default-src *; script-src 'self' 'unsafe-inline' 'unsafe-eval' *; style-src  'self' 'unsafe-inline' *">
+        <meta name=viewport content="width=device-width, initial-scale=1.0, minimum-scale=0.5 maximum-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="icon" href="resources/images/favicon.ico" type="image/x-icon" />
+        <link href="resources/images/favicon.ico" type="image/x-icon" />
+        <title>NativeJS • TodoMVC Login</title>
+
+
+        <!-- SESSION  -->
+        <script src="resources/session.js"></script>
+
+        <!-- RESOURCES -->
+        <script src="-appconfig.js"></script>
+        
+        <script id="config">
+            appconfig = {
+                version     : "1.0",
+                appid       : "M1C01228-8E93-4X27-B54B-D49339AZ7CE8",
+                namespace   : "apps.Login",
+                storagekey  : "myApp",
+                charset     : "utf-8",
+                environment : "dev",
+                theme       : "Default",
+                AMD         : true,
+                foucdelay   : 700,
+                debug       : false,
+                logging     : true,
+                fullscreenmode  : true,
+                ismobile    : true,
+                apppath     : "",
+                heartbeat   : false
+            };  
+        </script>
+
+        <script src="resources/routes.js"></script>
+
+        <!-- FRAMEWORK -->
+        <script src="dist/main.src.js"></script>
+
+        <!-- LIBS & UTILITIES -->
+
+        <!-- COMMON TRAITS -->
+        
+        <!-- MODEL/VOs -->
+        
+        <!-- DATA CONTROLLERS -->
+
+        <!-- UI COMPONENTS -->
+
+        <!-- MAIN APPLICATION -->
+        <script src="login.js"></script>
+        <!--script type="text/es6" src="Person.js"></script -->
+
+        <script>
+            //var e = new Ecmascript6ClassTranspiler;
+              //  e.transpileDocument();
+        </script>
+    </head>
+    
+    
+    <body class="ready">
+        <div class="canvas" style="opacity:0;">
+            <div id="application-container">
+                <div id="megamenu" class="unselectable"></div>
+                <div id="desktop-notifications"></div>      
+                <div class="running application-container" namespace="core.ui.WebComponent"></div>
+                <span id="global-application-spinner" class="fa fa-spinner"></span>
+            </div>
+        </div>
+    </body>
+</html>
+    

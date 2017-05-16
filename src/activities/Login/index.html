@@ -1,0 +1,62 @@
+<div namespace="core.ui.WindowPanel">
+    <div id="topper">
+    	<span id="contact-label">
+    		<span class="fa fa-comments-o" style="color: #ababab;font-size: 16px;"></span>
+    		<span style="color:#006699;">Help</span>
+    	</span>
+        <span id="help-label">
+            <span style="color: #ababab;font-size: 16px;" class="fa fa-question-circle"></span>
+        </span>
+    </div>
+    <div id="login-content-wrapper">
+    	<div id="login-bg"></div>
+    	<div id="login-panel-controls">
+    		<h2>TodoMVC Splash Screen</h2>
+    		<label for="login">Login as a demo user:</label>
+    		<div id="fields" style="overflow:hidden;">
+    			
+				<div id="accounts-container">
+					<script id="accounts-template"	type="text/x-kruntch-template">
+							<select id="username_select" style="width: 100%; height: 30px; border: medium none;" 
+                    			data-cardinal-position="south" 
+                       			data-helpindex="1" 
+                       			data-helptext="Select a user account to test the demo">
+									<for each="items">
+                                        <if condition="this.active_account == true">
+                                            <if condition="this.default == true">
+    										  <option value="[username]" selected>
+                                                [username] ([role])
+                                              </option>
+                                              <else>
+                                                <option value="[username]">[username] ([role])</option>
+                                              </else>
+                                            </if>
+                                        </if>
+									</for>
+							</select>
+					</script>
+				</div>
+                
+    			<input placeholder="Password" id="userpassword" type="password" style="height: 30px; padding: 0px 0px 0px 10px; border: 0px none; width: 100%; margin-top: 13px; box-sizing: border-box;">
+                <button namespace="core.ui.Button" id="loginButton">Login</button>
+    			
+    		</div>
+    		<div id="login-first-time-user"> 
+	          <div class="login-first-time-user-topper"> 
+	            <h3>Reset Demo?</h3> 
+    	            <div namespace="core.ui.Button" id="reset-demo-button" class="button" style="font-size: 11px; color: white;"
+                        data-cardinal-position="south" 
+                        data-helpindex="2" 
+                        data-helptext="Reset de software naar de fabrieksinstellingen">
+                        <span class="fa fa-refresh fa-fw icon"></span>
+                        <span class="label">Reset</span>
+                    </div>
+	          </div> 
+	        </div>
+    	</div>
+    </div>
+    <div id="login-footer">
+        <span id="build-label">Author: Jason E. Smith</span>
+        <span id="copy-right-label">@2017 Demonstration of TodoMVC. Free to use, modify.</span>
+    </div>
+</div>

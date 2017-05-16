@@ -1,0 +1,110 @@
+.TodoListDataGrid{}
+
+.TodoListDataGrid caption {
+	text-align: left;display: none;
+}
+
+.TodoListDataGrid thead {
+	height: 50px;
+}
+
+.TodoListDataGrid thead th:first-child {
+	width:40px;
+	text-align: center !important;
+}
+
+.TodoListDataGrid thead th #toggle-all-completed {
+	width: 30px;height: 30px;
+}
+
+.TodoListDataGrid thead th:last-child {
+	width:40px;
+	text-align: center !important;
+	color: #af5b5e;
+	font-size: 21px;
+}
+
+.TodoListDataGrid table {
+	width: 100%;
+}
+
+
+.TodoListDataGrid {
+	table-layout: fixed;
+	width: 100%;
+}
+
+.TodoListDataGrid .row{
+	font-size: 24px;
+}
+.TodoListDataGrid .row .cell:first-child {
+	width: 30px;
+	text-align: center;
+}
+.TodoListDataGrid .row .cell {
+	border-bottom: 1px solid #ededed;
+}
+
+.TodoListDataGrid .row .cell .label{
+	white-space: pre-line;
+	word-break: break-all;
+	display: block;
+	width: 100%;
+	transition: color 0.4s;
+	border:none;
+	font:inherit;
+	line-height: 1.2;
+}
+
+.TodoListDataGrid .row.completed .label {
+	color: #d9d9d9;
+	text-decoration: line-through;
+}
+
+
+.TodoListDataGrid thead {
+	background: rgba(0,0,0,.03);
+}
+
+.TodoListDataGrid th,
+.TodoListDataGrid td {
+	text-align: left;
+	font-weight: 200;
+	padding: 0px 4px;
+}
+
+.TodoListDataGrid th {
+	font-weight: 400;
+}
+
+.TodoListDataGrid .row.completed .UserDropdownList{
+	opacity: .2;
+	pointer-events: none;
+}
+
+.TodoListDataGrid th select,
+.TodoListDataGrid td select {
+	border: none;
+	background: transparent;
+	font:inherit;
+	color:inherit;
+	width: 100%;
+}
+
+
+.TodoListDataGrid .destroy {
+	width: 40px;
+	height: 40px;
+	font-size: 30px;
+	color: #cc9a9a;
+	cursor: pointer;
+	transition: color 0.2s ease-out;
+}
+
+.TodoListDataGrid .destroy:hover {
+	color: #af5b5e;
+}
+
+.TodoListDataGrid .destroy:after {
+	content: '×';
+}
