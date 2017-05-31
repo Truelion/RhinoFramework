@@ -21,6 +21,7 @@ appconfig = window.appconfig||{};
 //= require core/http/ScriptLoader
 //= require core/http/Router
 //= require core/traits/EventBus
+//= require core/traits/ResourcePathTransformer
 //= require core/traits/InitializeApplicationData
 //= require core/data/StorageManager
 //= require libs/rison.js
@@ -118,6 +119,14 @@ namespace("core.Application", {
     },
 
     isUserAccountAvailable : function(){
+        console.warn("core.Application::isUserAccountAvailable() - Deprecated. Use #isUserSessionValid()")
+        if(!this.account) {
+            this.account = new core.vo.Account(this.db.user);
+        };
+        return this.account.isValid();
+    },
+
+    isUserSessionValid : function(){
         if(!this.account) {
             this.account = new core.vo.Account(this.db.user);
         };

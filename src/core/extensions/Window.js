@@ -5,38 +5,6 @@ if("logging" in appconfig && appconfig.logging != true) {
 };
 
 
-//extend obj with proto
-$C = function(obj, proto){
-   for(var key in proto) {
-       if (!obj[key]) {
-        obj[key] = proto[key];
-       }
-   };
-   return obj;
-};
-
-function $CAST(obj, _class, args){
-    if (!obj || (typeof obj != "object")) { return obj;}
-    if(obj && obj.nodeType==1){
-        if (obj.prototype && (obj.prototype instanceof _class)) {
-            return obj.prototype;
-        }
-        else {
-            _class = _class||w3c.Element;
-            return new _class((args ||{}), obj);
-        }
-    }
-    else {
-        if(obj && (obj instanceof _class)) {
-            return obj;
-        }
-        else {
-            _class = _class||w3c.Element;
-            return new _class((args ||{}), obj);
-        }
-    }
-};
-
 window.getParameterByName = function(name) {
     var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.href);
     return match && decodeURIComponent(match[1].replace(/\+/g, ' '));

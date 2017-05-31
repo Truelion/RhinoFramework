@@ -251,5 +251,50 @@ namespace("core.ui.Node", {
         } else {
             return val;
         }
+    },
+
+    getParentBySelector : function ( elem, selector ) {
+        elem = elem ||this.element;
+        for ( ; elem && elem !== document; elem = elem.parentNode ) {
+            if ( elem.matches( selector ) ) return elem;
+        }
+        return null;
+    },
+
+    getAllParentsBySelector : function ( elem, selector ) {
+        elem = elem ||this.element;
+        var parents = [];
+        for ( ; elem && elem !== document; elem = elem.parentNode ) {
+            if ( selector ) {
+                if ( elem.matches( selector ) ) {
+                    parents.push( elem );
+                }
+            } else {
+                parents.push( elem );
+            }
+        }
+        return parents;
+    },
+
+    getParentBySelectorUntil : function ( elem, terminator, selector ) {
+        elem = elem || this.element;
+        var parent_node = null;
+        for ( ; elem && elem !== document; elem = elem.parentNode ) {
+            if ( terminator ) {
+                if ( elem.matches( terminator ) ) break;
+            }
+            if ( selector ) {
+                if ( elem.matches( selector ) ) {
+                    parent_node =  elem;
+                    break;
+                }
+            }
+        }
+        return parent_node;
+    },
+
+    getRealTargetFromEvent : function(e, selector, terminator){
+        var el = e.target;
+        return this.getParentBySelectorUntil(el, terminator, selector);
     }
 });

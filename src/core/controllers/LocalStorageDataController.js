@@ -11,13 +11,20 @@ namespace("core.controllers.LocalStorageDataController", {
 		}
     },
 
-    load : function(uri, params){
-        try{
-        	var results_array = core.data.StorageManager.find(this.getRouteConfig().table);
-        	this.onDownloaded(null,results_array);
-    	} catch(e){
-    		this.onDownloadFailure();
-    	}
+    load : function(uri, params, force){
+        force = (typeof force == "boolean") ? force:false;
+        uri = uri || this.CONFIG;
+
+        if(!this.getData() || force){
+            try{
+            	var results_array = core.data.StorageManager.find(this.getRouteConfig().table);
+            	this.onDownloaded(null,results_array);
+        	} catch(e){
+        		this.onDownloadFailure();
+        	}
+        } else {
+            this.dispatchEvent("loaded", {data:this.getData(), response:null, fromcache:true}, this);
+        }
     },
 
     getRouteConfig : function(){
@@ -38,9 +45,10 @@ namespace("core.controllers.LocalStorageDataController", {
     },
 
     onDownloaded : function(r, results_array){
+        var dataset;
         try{
             try{
-                var dataset = {
+                dataset = {
                 	table : this.getRouteConfig().table,
                 	columns : [],
                 	items : results_array||[]
@@ -69,10 +77,12 @@ namespace("core.controllers.LocalStorageDataController", {
             pageSize : 3,
             currentPage:0
         });
+        this.dispatchEvent("loaded", {data:this.getData(), response:null, fromcache:true}, this);
 
         if(this.host){
             if(this.host.onDownloadComplete){
                 setTimeout(function(){
+                    console.warn(self.host.namespace + "#onDownloadComplete() - Deprecated. Use addEventListener('loaded', callback, false) to be notified when data is loaded and ready for use.");
                     self.host.onDownloadComplete(data, self);
                 },100);
             }

@@ -23,25 +23,6 @@ namespace("js.Interface", {
     "@inherits" : js.Trait,
     '@description' : [],
     
-    /*preInitialize : function preInitialize(_host){
-        var descriptor = this["@description"];
-        if(window.appconfig.debug) {
-            for(var i=0; i<=descriptor.length-1; i++) {
-                var member = descriptor[i];
-                if(member.required) {
-                    if(!(member.name in _host)) {
-                        try{console.error("Interface Exception in component " + _host.namespace + "\n" + member.description)} catch(e){}
-                        return;
-                    }
-                }
-                else if(!(member.required)) {
-                    try{console.info("Optional Interface Implementation: The component '" + _host.namespace + "' may optionally override or implement '" + member.name + "' " + member.description )} catch(e){}
-                }
-            }
-        }
-        return this.initialize(_host);
-    },*/
-    
 	initialize : function initialize(_host){
         var descriptor = this["@description"];
         if(window.appconfig.debug) {

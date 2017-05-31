@@ -34,7 +34,7 @@ Session.Demo[Session.State.currentLanguage] = {
 // Session.Demo[Session.Constants.Languages.EN_CA] = {country:"Canada", language:"English", version:"1.0", build:"20160119-1"};
 // Session.Demo[Session.Constants.Languages.EN_FR] = {country:"Canada", language:"French", version:"1.0", build:"20160119-1"};
 Session.Debug = { 
-	disableLogging : true, 
+	disableLogging : false, 
 	production : false
 };
 

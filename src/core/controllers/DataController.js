@@ -5,7 +5,7 @@ namespace("core.controllers.DataController", {
     '@traits'   : [Observer.prototype],
     observations : [],
     subscribers  : {},
-    '@imports'  : ["~/src/core/traits/localStorageData.js"],
+    //'@imports'  : ["~/src/core/traits/localStorageData.js"],
 
 
     initialize : function(host, async){
@@ -16,14 +16,20 @@ namespace("core.controllers.DataController", {
     },
 
     load : function(uri, params){
-        var self=this;
-            params=params||{};
-        var a = new core.http.WebAction(uri,params,{},this.async);
-        a.invoke({
-            onSuccess  : this.onDownloaded.bind(this),
-            onFailure  : this.onDownloadFailure.bind(this),
-            onRejected : this.onDownloadFailure.bind(this)
-        })
+        force = (typeof force == "boolean") ? force:false;
+        uri = uri || this.CONFIG;
+        if(!this.getData() || force){
+            var self=this;
+                params=params||{};
+            var a = new core.http.WebAction(uri,params,{},this.async);
+            a.invoke({
+                onSuccess  : this.onDownloaded.bind(this),
+                onFailure  : this.onDownloadFailure.bind(this),
+                onRejected : this.onDownloadFailure.bind(this)
+            })
+        } else {
+            this.dispatchEvent("loaded", {data:this.getData(), response:null, fromcache:true}, this);
+        }
     },
 
     getRouteConfig : function(){
@@ -46,45 +52,41 @@ namespace("core.controllers.DataController", {
     onDownloaded : function(r, responseText){
         try{
             try{
-                var data = JSON.parse(responseText);
+                var _data = JSON.parse(responseText);
             }
             catch(e) {
                 console.error(e.message, e);
             }
-            if(data){
-                this.onDataReceived(data, r);
+            if(_data){
+                this.onDataReceived(_data, r);
             }
         }
         catch(e){
-            //alert("error downloading " + this.namespace + " data");
             console.error(e.message,responseText)
         }
     },
 
-    onDataReceived : function(data, xhr){
+    onDataReceived : function(_data, xhr){
         var self=this;
-        //this.table_name = data.table;
-        data = this.onInitializeModelDataObjects(data);
-        this.setData(data.table, data);
-
-        data = this.getData();
-
-        //this.data = application.db[data.table] = this.onInitializeModelDataObjects(data);
+        _data = this.onInitializeModelDataObjects(_data);
+        this.setData(_data.table, _data);
+        _data = this.getData();
 
         this.paginator = new core.traits.Paginator({
-            data : data.items,
+            data : _data.items,
             pageSize : 3,
             currentPage:0
         });
-
+        this.dispatchEvent("loaded", {data:_data, response:xhr, fromcache:false}, this);
         if(this.host){
             if(this.host.onDownloadComplete){
+                console.warn(self.host.namespace + "#onDownloadComplete() - Deprecated. Use addEventListener('loaded', callback, false) to be notified when data is loaded and ready for use.");
                 setTimeout(function(){
-                    self.host.onDownloadComplete(data, self);
+                    self.host.onDownloadComplete(_data, self);
                 },100);
             }
             else {
-                console.warn(this.host.namespace + " should implement #onDownloadComplete(data) to be notified when the data controller has loaded it's data and ready for use.");
+                console.warn(this.host.namespace + " should implement #onDownloadComplete(_data) to be notified when the data controller has loaded it's data and ready for use.");
             }
         }
     },

@@ -2041,6 +2041,41 @@ namespace("core.traits.EventBus", {
     }
 });
 
+namespace("core.traits.ResourcePathTransformer");
+
+core.traits.ResourcePathTransformer = {
+    resourcepath : function (filepath, ns){
+        filepath = filepath||"";
+        var apppath = appconfig.apppath||"";
+        filepath = filepath.replace("[$theme]", ("themes/"+appconfig.theme));
+        filepath = filepath.replace("[$icon]",  ("themes/"+appconfig.theme) + "/images/icons/");
+
+        var path = apppath + filepath;
+        return this.relativeToAbsoluteFilePath(path, ns);
+    },
+    
+    relativeToAbsoluteFilePath : function(path, ns){
+        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
+        ns = ns||this.namespace;
+
+        if(path.indexOf("~/") >= 0){
+            path = path.replace("~/", apppath);
+        } else if(path.indexOf("./") >= 0){
+            path = path.replace("./", apppath + ns.replace(/\./gim,"/") + "/");
+        } 
+        else if(path.indexOf("http") == 0){
+            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
+        }
+        else{
+            if(path.indexOf(appconfig.apppath)<0){
+                path = apppath + path
+            }
+        }
+        path = /http:/.test(path)? path : path.replace("//","/");
+        return path;
+    }
+};
+
 namespace("core.traits.InitializeApplicationData");
 
 core.traits.InitializeApplicationData = {
@@ -5079,7 +5114,7 @@ namespace("core.controllers.DataController", {
     '@traits'   : [Observer.prototype],
     observations : [],
     subscribers  : {},
-    '@imports'  : ["~/src/core/traits/localStorageData.js"],
+    //'@imports'  : ["~/src/core/traits/localStorageData.js"],
 
 
     initialize : function(host, async){
@@ -5650,40 +5685,6 @@ namespace('core.models.ComponentModel', {
 	}
 });
 
-namespace("core.traits.ResourcePathTransformer");
-
-core.traits.ResourcePathTransformer = {
-    resourcepath : function (filepath, ns){
-        filepath = filepath||"";
-        var apppath = appconfig.apppath||"";
-        filepath = filepath.replace("[$theme]", ("themes/"+appconfig.theme));
-        filepath = filepath.replace("[$icon]",  ("themes/"+appconfig.theme) + "/images/icons/");
-
-        var path = apppath + filepath;
-        return this.relativeToAbsoluteFilePath(path, ns);
-    },
-    
-    relativeToAbsoluteFilePath : function(path, ns){
-        var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
-        ns = ns||this.namespace;
-
-        if(path.indexOf("~/") >= 0){
-            path = path.replace("~/", apppath);
-        } else if(path.indexOf("./") >= 0){
-            path = path.replace("./", apppath + ns.replace(/\./gim,"/") + "/");
-        } 
-        else if(path.indexOf("http") == 0){
-            return path;//.replace("./", appconfig.apppath + "/" + ns.replace(".","/","g") + "/");
-        }
-        else{
-            if(path.indexOf(appconfig.apppath)<0){
-                path = apppath + path
-            }
-        }
-        path = /http:/.test(path)? path : path.replace("//","/");
-        return path;
-    }
-};
 
 
 namespace("core.traits.CSSStyleUtilities");
@@ -5703,7 +5704,7 @@ core.traits.CSSStyleUtilities = {
                 //stylesheets = stylesheets.concat(styles)
                     ancestors.unshift(ancestor);
                     for(var i=0; i<=styles.length-1; i++){ 
-                        stylesheets.push(this.resourcepath(styles[i], ancestor.prototype.namespace));     
+                        stylesheets.push(this.relativeToAbsoluteFilePath(styles[i], ancestor.prototype.namespace));     
                     }
                     
                 if(ancestor.prototype["@cascade"]) {
@@ -5714,7 +5715,7 @@ core.traits.CSSStyleUtilities = {
 
             var this_styles = this["@stylesheets"]||[];
             for(var i=0; i<=this_styles.length-1; i++){ 
-                stylesheets.unshift(this.resourcepath(this_styles[i],this.namespace));     
+                stylesheets.unshift(this.relativeToAbsoluteFilePath(this_styles[i],this.namespace));     
             }
         }
         else {
@@ -6966,6 +6967,7 @@ namespace("core.Application", {
     },
 
     intiDefaultApp : function(){
+        debugger;
         var defaultHashPath = rison.encode({appref:this.MAIN_ACTIVITY});
         var h = window.location.hash;
         if(!h||(h && h.length <=0)){

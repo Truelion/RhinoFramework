@@ -8,8 +8,8 @@ BUILDCONFIG = {
 	Input : "main.js",
 	
 	Output : {
-		SourcePath:"dist/main.src.js",
-		CompressedPath: "dist/main.min.js"
+		SourcePath:"../src/libs/framework.src.js",
+		CompressedPath: "../src/libs/framework.min.js"
 	},
 	
 	Verbos:true

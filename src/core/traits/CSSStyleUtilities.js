@@ -17,7 +17,7 @@ core.traits.CSSStyleUtilities = {
                 //stylesheets = stylesheets.concat(styles)
                     ancestors.unshift(ancestor);
                     for(var i=0; i<=styles.length-1; i++){ 
-                        stylesheets.push(this.resourcepath(styles[i], ancestor.prototype.namespace));     
+                        stylesheets.push(this.relativeToAbsoluteFilePath(styles[i], ancestor.prototype.namespace));     
                     }
                     
                 if(ancestor.prototype["@cascade"]) {
@@ -28,7 +28,7 @@ core.traits.CSSStyleUtilities = {
 
             var this_styles = this["@stylesheets"]||[];
             for(var i=0; i<=this_styles.length-1; i++){ 
-                stylesheets.unshift(this.resourcepath(this_styles[i],this.namespace));     
+                stylesheets.unshift(this.relativeToAbsoluteFilePath(this_styles[i],this.namespace));     
             }
         }
         else {
