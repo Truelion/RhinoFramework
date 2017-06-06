@@ -109,7 +109,7 @@ Ecmascript6ClassTranspiler.prototype.Read = function(path, cbSuccess, cbFailure)
   var self=this;
   var oXMLHttpRequest = new XMLHttpRequest;
   		try {
-	        oXMLHttpRequest.open("GET", path, false);
+	        oXMLHttpRequest.open("GET", appconfig.apppath + path, false);
 	        oXMLHttpRequest.setRequestHeader("Content-type", "text/javascript");
 	        oXMLHttpRequest.onreadystatechange  = function() {
 	            if (this.readyState == XMLHttpRequest.DONE) {

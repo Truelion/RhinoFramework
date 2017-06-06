@@ -181,12 +181,16 @@ namespace("core.Application", {
         var self=this;
         var force = (typeof e.data.force == "boolean")?e.data.force:false;
             self.createApplicationInstance(appInfo, function(appInstance){
-                var appContainer = document.querySelector(".running.application-container")||self.element;
-                self.blurCurrentRunningApplication(e,appContainer);
+                var appContainer = document.querySelector(".application-container")||self.element;
+                if(self.currentRunningApplication && 
+                    self.currentRunningApplication.namespace != appInstance.namespace){
+                    self.blurCurrentRunningApplication(e);
+                }
+                appContainer.innerHTML = "";
                 appContainer.appendChild(appInstance.element);
+                self.currentRunningApplication = appInstance;
                 self.globalApplicationSpinner.classList.remove("active");
                 appContainer.classList.add("active");
-                currentApp = null;
                 self.dispatchEvent("appopened", true,true, e.data);
             }, force, e);
     },
@@ -195,17 +199,18 @@ namespace("core.Application", {
         this.currentRunningApplication = app;
     },
 
-    blurCurrentRunningApplication : function(e, appContainer){
-        var appContainer = appContainer||document.querySelector(".running.application-container");
-        var currentApp = appContainer.querySelector(".WebApplication");
+    blurCurrentRunningApplication : function(e){
+        var appContainer = document.querySelector(".application-container")||this.element;
+        var currentApp = this.currentRunningApplication;
         if(currentApp){
-            currentApp.prototype.onBlur(e);
-            appContainer.removeChild(currentApp);
+            alert("unload currentRunningApplication: " + this.currentRunningApplication.namespace)
+            this.currentRunningApplication.onBlur(e);
+            appContainer.removeChild(this.currentRunningApplication.element);
             appContainer.innerHTML = "";
         } else{
             appContainer.innerHTML = "";
         }
-        currentApp = null;
+        this.currentRunningApplication = null;
         this.dispatchEvent("appunload", true, true, {});
     },
 
@@ -220,10 +225,8 @@ namespace("core.Application", {
                 if(!force){
                     self.storeApplicationInstance(appInfo.namespace, d);
                 }
-                setTimeout(function(){
-                    d.onFocus(e);
-                    callback(d);
-                },500);//1000 to fully render 
+                d.onFocus(e);
+                callback(d);
             }, false);
             c.load(appInfo.namespace)
         } else {
@@ -232,6 +235,8 @@ namespace("core.Application", {
                 if(!d) {
                     d = new NSRegistry[appInfo.namespace];
                     d.onActivated(e);
+                } else {
+                    console.log("app instance loaded from memory")
                 }
                 this.storeApplicationInstance(appInfo.namespace, d);
                 d.onFocus(e);
@@ -256,7 +261,6 @@ namespace("core.Application", {
     },
     
     getApplicationInstance : function(ns){
-        console.log("app instance loaded from memory")
         if(!this.appinstances){
             this.appinstances = {};
         }
