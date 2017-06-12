@@ -5,11 +5,13 @@ namespace("core.controllers.DataController", {
     '@traits'   : [Observer.prototype],
     observations : [],
     subscribers  : {},
-    //'@imports'  : ["~/src/core/traits/localStorageData.js"],
 
 
     initialize : function(host, async){
         var self=this;
+        if(!application.db){
+            application.db = {};
+        }
         this.host = host;
         this.async = typeof async == "boolean"?async:false;
         return this;
@@ -28,7 +30,7 @@ namespace("core.controllers.DataController", {
                 onRejected : this.onDownloadFailure.bind(this)
             })
         } else {
-            this.dispatchEvent("loaded", {data:this.getData(), response:null, fromcache:true}, this);
+            this.dispatchEvent("loaded", {controller: this, data:this.getData(), response:null, fromcache:true}, this);
         }
     },
 
@@ -77,7 +79,7 @@ namespace("core.controllers.DataController", {
             pageSize : 3,
             currentPage:0
         });
-        this.dispatchEvent("loaded", {data:_data, response:xhr, fromcache:false}, this);
+        this.dispatchEvent("loaded", {controller: this, data:_data, response:xhr, fromcache:false}, this);
         if(this.host){
             if(this.host.onDownloadComplete){
                 console.warn(self.host.namespace + "#onDownloadComplete() - Deprecated. Use addEventListener('loaded', callback, false) to be notified when data is loaded and ready for use.");

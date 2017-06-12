@@ -55,12 +55,12 @@ UrlHashState = {
 
             if(appinfo && appinfo.appref && appinfo.appref.length>0){
               var ns = appinfo.appref.replace("/",".");
-              var app = self.currentRunningApplication;
-              if(!app || app.namespace != ns){
+              var _app = self.currentRunningApplication;
+              if(!_app || _app.namespace != ns){
                   self.dispatchEvent("openapp",true,true,appinfo)
               }
-              else if(app && app.namespace == ns){
-                    app.onResume({data:appinfo})
+              else if(_app && _app.namespace == ns){
+                    _app.onResume({data:appinfo})
                   //self.dispatchEvent("openapp",true,true,appinfo)
               }
             }

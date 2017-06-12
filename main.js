@@ -42,13 +42,14 @@ appconfig = window.appconfig||{};
 //= require core/controllers/DataController
 //= require core/controllers/AccountDataController
 //= require core/controllers/LocalStorageDataController
-
+//= require core/controllers/SessionDataController
 
 //---------------------UI----------------------
 //= require core/ui/WebComponent
 //= require core/ui/WebApplication
 //= require core/ui/Panel
 //= require core/ui/WindowPanel
+//= require core/ui/ModalScreen
 
 
 //-----------------BOOTLOADER------------------
@@ -70,6 +71,7 @@ namespace("core.Application", {
         this.configscript   = document.querySelector("script[id='config']")||
                               document.querySelector("script");
         core.data.StorageManager.initialize(Config.StorageManager.STORE_KEY);
+        this.session = new core.controllers.SessionDataController;
         window.addEventListener ("load", this.onLoad.bind(this), true);
         window.addEventListener ("hashchange", this.onLocationHashChanged.bind(this), true);
         this.parent(model, element.body||element);
@@ -77,9 +79,15 @@ namespace("core.Application", {
     },
 
 
+    onPause : function(){
+        alert(this.namespace)
+    },
+
+
     initialize : function () {
     	var self = this;
         this.parent(arguments);
+        
         document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);
         this.addEventListener("appopened", this.onApplicationOpened.bind(this), false);
         this.addEventListener("openapp", this.onLaunchWebApplication.bind(this), false);
@@ -119,18 +127,20 @@ namespace("core.Application", {
     },
 
     isUserAccountAvailable : function(){
-        console.warn("core.Application::isUserAccountAvailable() - Deprecated. Use #isUserSessionValid()")
-        if(!this.account) {
-            this.account = new core.vo.Account(this.db.user);
-        };
-        return this.account.isValid();
+        console.warn("core.Application::isUserAccountAvailable() - Deprecated. Use #isUserSessionValid()");
+        return this.isUserSessionValid();
+
+        // if(!this.account) {
+        //     this.account = new core.vo.Account(this.db.user);
+        // };
+        // return this.account.isValid();
     },
 
     isUserSessionValid : function(){
-        if(!this.account) {
-            this.account = new core.vo.Account(this.db.user);
-        };
+        var user = this.session.get("user");
+        this.account = new core.vo.Account(user);
         return this.account.isValid();
+        //return false;
     },
 
     open : function(data){
