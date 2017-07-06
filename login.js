@@ -19,6 +19,7 @@ namespace("apps.Login",
         this.bus.addEventListener(
             "activities.Login::success", this.onLoginSuccessfull.bind(this), false);
     },
+    
 
     onBeforeApplicationOpened : function(){},
 

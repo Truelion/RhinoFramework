@@ -70,12 +70,12 @@ if (!String.prototype.trim) {
 };
 
 
-String.prototype.toLocaleString = function(){
+String.prototype.toLocaleString = function(langCode){
   var key = this.toString();
-  if(Session && Session.Localization && Session.State && Session.State.currentLanguage){
-    if(Session.Localization[Session.State.currentLanguage]){
-      return Session.Localization[Session.State.currentLanguage][key]||
-             Session.Localization[Session.State.currentLanguage][key.toLowerCase()]||key;
+  if(Localization){
+    if(Localization[langCode]){
+      return Localization[langCode][key]||
+             Localization[langCode][key.toLowerCase()]||key;
     } else {
       return key;
     }
