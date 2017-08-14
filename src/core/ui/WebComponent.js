@@ -47,7 +47,8 @@ namespace("core.ui.WebComponent",
         if(templateDefinition.template.parentNode){
             templateDefinition.template.parentNode.removeChild(templateDefinition.template);
         }
-        var text = Kruntch.Apply(templateDefinition.template.innerHTML, data);
+        // var text = Kruntch.Apply(templateDefinition.template.innerHTML, data);
+        var text = this.parseTemplate(templateDefinition.template.innerHTML, data);
         var d = document.createElement(templateDefinition.parentTagName||"div");
         d.innerHTML = text;
         
@@ -83,7 +84,11 @@ namespace("core.ui.WebComponent",
         var self=this;
         
         var firstChild = this.firstChild(null,true);
-        var path = this.constructor.prototype["@href"];
+        var path = this.constructor.prototype["@template-uri"]||
+                   (function(){
+                    console.warn(self.namespace + " - '@href' Class-definition attribute is a deprecated name. Use '@template-uri' for improved clarity."); 
+                    return self.constructor.prototype["@href"]}());
+
 
         if(!firstChild){
             if(path) {
@@ -103,6 +108,7 @@ namespace("core.ui.WebComponent",
                                 htmltext = htmltext.replace("[$icon]",self.resourcepath("[$icon]"),"igm")
                             self.constructor.prototype.innerHTML = htmltext;
                             self.constructor.prototype["@href"]=null;
+                            self.constructor.prototype["@template-uri"]=null;
                             var view = self.parseElement();
                             self.element.appendChild(view);
                             self.innerHTML=self.element.outerHTML;
@@ -130,48 +136,11 @@ namespace("core.ui.WebComponent",
         return this.renderTemplate(data, templateName, initChildComponents, false);
     },
     
-    setACLControls : function(data){
-        if(data.acl){
-            for(var key in data.acl){
-                var val = data.acl[key];
-                if(typeof val =="boolean" && val == false) {
-                    var aclElements = this.querySelectorAll("*[data-acl-key='" + key + "']");
-                    if(aclElements){
-                        for(var i=0; i<=aclElements.length-1; i++){
-                            var el = aclElements[i];
-                            el.classList.add("acl-hidden");
-                        }
-                    }
-                } else {
-                    var aclElements = this.querySelectorAll("*[data-acl-key='" + key + "']");
-                    if(aclElements){
-                        for(var i=0; i<=aclElements.length-1; i++){
-                            var el = aclElements[i];
-                            el.classList.remove("acl-hidden");
-                        }
-                    }
-                }
-            }
-        }
-    },
-    
     onFocus : function(){},
     
     getModalValue : function() {
         console.info("Implement getModalValue() in " + this.namespace + " to return a value when the modal is confirmed as OK/Save.")
         return null;
-    },
-    
-    parseElement : function (template, json){
-        var templateString = (typeof this.innerHTML === "function") ?
-            this.innerHTML() : this.innerHTML;
-            var html=templateString;
-         //var html = this.parseTemplate(templateString, json);
-         html = this.parseTemplate(templateString, json);
-         if (html && html.length > 0) {return html.toHtmlElement()}
-         else {
-            throw new Error(this.namespace + "#parseElement(template, json). Invalid xhtml generated from 'template' string. Value of 'html' is: "+ html);
-         }
     },
     
     getPreviousSibling : function(n) {

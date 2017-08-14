@@ -142,7 +142,7 @@
     var loadImports = function(properties, ns){
         var amdSupported = true;
         var forceImports = false;
-        
+        var self=this;
         if(appconfig && ("AMD" in appconfig) && appconfig.AMD==false){
             amdSupported=false;
         }
@@ -167,6 +167,7 @@
                  oXMLHttpRequest.setRequestHeader("Content-type", "text/javascript");
                  oXMLHttpRequest.onreadystatechange  = function() {
                     if (this.readyState == XMLHttpRequest.DONE) {
+                      if(this.status == 0 || this.status == 200){
                         var head   = document.getElementsByTagName("head").item(0);
                         var scripts = head.getElementsByTagName("script");
                         var script = document.createElement("script");
@@ -184,6 +185,10 @@
                             head.appendChild(script);
                             //console.info("@imports loaded:",imports[i]);
                             importedFiles[imports[i]]=true;
+                      }
+                      else {
+                        console.error("Javascript 404: Unable to load @imports file: " + imports[i] + " from Class: " + ns)
+                      }
                     }
                  }
                  oXMLHttpRequest.send(null);

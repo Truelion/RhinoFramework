@@ -16,6 +16,7 @@ core.EventBus = {
         for(var i=0; i<=observers.length-1; i++){
         	var observer = observers[i];
         	observer.callback.call(scope, data); 
+            //TODO: Add support for stopping propagation of events.
         } 
    },
    

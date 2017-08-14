@@ -12,6 +12,17 @@ core.traits.ResourcePathTransformer = {
     },
     
     relativeToAbsoluteFilePath : function(path, ns){
+        var self=this;
+            var engine = this.getTemplateParser();
+            var engineWarningMsg = this.namespace + "#renderDOMTree() - is specifying a template engine api, '" + engine.name + "', that is not found. Defaulting to 'Kruntch'.";
+                engine = engine.isAvailable()?
+                    engine:
+                    (function(){
+                        console.warn(engineWarningMsg); 
+                        return self.getDefaultTemplateEngine()
+                    })();
+
+
         var apppath = appconfig.apppath? (appconfig.apppath + "/") : "";
         ns = ns||this.namespace;
 
@@ -29,6 +40,9 @@ core.traits.ResourcePathTransformer = {
             }
         }
         path = /http:/.test(path)? path : path.replace("//","/");
+        if(path.indexOf(".html")>=0 && engine != TemplateEnginePlugins.Kruntch){
+            path = path.replace(/\.html/, engine.ext+".html");
+        }
         return path;
     }
 };

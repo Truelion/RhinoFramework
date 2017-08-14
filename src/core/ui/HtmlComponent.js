@@ -205,12 +205,6 @@ namespace("core.ui.HtmlComponent", {
 		return { left: x, top: y };
 	},
 
-	/*setID : function(id){
-		id = id||this.get("id");
-		this.id = id;
-		this.element.setAttribute("id", id);
-	},*/
-	
 	innerHTML : "<div></div>",
 	
 	setModel : function(jsonobj) {
@@ -230,7 +224,6 @@ namespace("core.ui.HtmlComponent", {
     renderDOMTree : function(){
         var el = this.element;
         var self=this;
-        
         var canvas = this.querySelector(".canvas")||this.firstChild(null,true);
         this.canvas = canvas;
         
@@ -240,9 +233,12 @@ namespace("core.ui.HtmlComponent", {
                 el.appendChild(canvas);  
             }
             this.canvas = canvas;
-         
-            //var path = el.getAttribute("href")||this["@href"];
-            var path = this.constructor.prototype["@href"];
+         	
+            var path = this.constructor.prototype["@template-uri"]||
+            		   (function(){
+            		   	console.warn(self.namespace + " - '@href' Class-definition attribute is a deprecated name. Use '@template-uri' for improved clarity."); 
+            		   	return self.constructor.prototype["@href"]}());
+
             if(path) {
                 var oXMLHttpRequest;
                 try{
@@ -255,15 +251,14 @@ namespace("core.ui.HtmlComponent", {
                     oXMLHttpRequest.setRequestHeader("Content-type", "text/plain");
                     oXMLHttpRequest.onreadystatechange  = function() {
                         if (this.readyState == XMLHttpRequest.DONE) {
-                            //if (this.status == 200) {
-                                var htmltext = this.responseText;
-                                self.constructor.prototype.innerHTML = htmltext;
-                                self.constructor.prototype["@href"]=null;
-                                var view = self.parseElement();
-                                canvas.appendChild(view);
-                                self.innerHTML=canvas.outerHTML;
-                                self.onDomReady(el);          
-                            //}
+                            var htmltext = this.responseText;
+                            self.constructor.prototype.innerHTML = htmltext;
+                            self.constructor.prototype["@href"]=null;
+                            self.constructor.prototype["@template-uri"]=null;
+                            var view = self.parseElement();
+                            canvas.appendChild(view);
+                            self.innerHTML=canvas.outerHTML;
+                            self.onDomReady(el);          
                         }
                     }
                     oXMLHttpRequest.send(null);
@@ -312,27 +307,38 @@ namespace("core.ui.HtmlComponent", {
 	},
 	
 	getTemplateParser : function(){
-	   return this["@htmlparser"];
-	},
-	
-	parseTemplate : function (template, _json) {
-	    var engine = this.getTemplateParser();
-	    if(!"parseTemplate" in engine){
-	        throw new Error("parseTemplate(templateString, data) method not implemented by the Template Engine api", engine);
-	    }
-		return (engine.parseTemplate(template,this.model.data) || "");
-	},
+       return TemplateEnginePlugins.Kruntch;
+    },
+
+    getDefaultTemplateEngine : function(){
+       return TemplateEnginePlugins.Kruntch;
+    },
+
+    parseTemplate : function (template, _json) {
+    	var self=this;
+        var engine = this.getTemplateParser();
+        var engineWarningMsg = this.namespace + "#getTemplateParser() - is specifying a template engine api, '" + engine.name + "', that is not found. Defaulting to 'Kruntch'.";
+        engine = engine.isAvailable()?
+        		 	engine:
+        		 	(function(){
+        		 		console.warn(engineWarningMsg); 
+        		 		return self.getDefaultTemplateEngine()
+        		 	})();
+        return (engine.parseTemplate(template,_json||{}));
+    },
 
 	parseElement : function (template, json){
-	    var templateString = (typeof this.innerHTML === "function") ?
+        var innerHTML = (typeof this.innerHTML === "function") ?
             this.innerHTML() : this.innerHTML;
+         innerHTML = json?
+            this.parseTemplate(innerHTML, json):
+            innerHTML;
             
-	     var html = this.parseTemplate(templateString, json);
-		 if (html && html.length > 0) {return html.toHtmlElement()}
-		 else {
-		 	throw new Error(this.namespace + "#parseElement(template, json). Invalid xhtml generated from 'template' string. Value of 'html' is: "+ html);
-		 }
-	},
+         if (innerHTML && innerHTML.length > 0) {return innerHTML.toHtmlElement()}
+         else {
+            throw new Error(this.namespace + "#parseElement(). Invalid xhtml generated from 'template' string. Value of 'html' is: "+ html);
+         }
+    },
 	
 	resetzindex : function(){
 		this.element.style["zIndex"] = 0;
